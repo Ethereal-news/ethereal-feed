@@ -4,11 +4,13 @@ import { SOURCES } from "../../config/sources";
 import { sourceStats } from "../../db/items";
 import { escapeHtml as h } from "../escape";
 import { htmlResponse } from "../layout";
-import { relativeTime } from "../render";
+import { age } from "../render";
 
 function timeCell(iso: string | undefined, now: Date): string {
   if (!iso) return `<td class="muted">never</td>`;
-  return `<td><time datetime="${h(iso)}" title="${h(iso)}">${h(relativeTime(iso, now))} ago</time></td>`;
+  const a = age(iso, now);
+  const label = a.text === "now" ? "just now" : a.relative ? `${a.text} ago` : a.text;
+  return `<td><time datetime="${h(iso)}" title="${h(iso)}">${h(label)}</time></td>`;
 }
 
 /** "/sources": config joined with item counts and the latest fetch run per source. */

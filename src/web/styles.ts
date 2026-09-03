@@ -47,10 +47,11 @@ main h1 span{color:var(--muted);font-weight:400}
 h2.day{font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:1.75rem 0 .75rem;display:flex;align-items:center;gap:.75rem}
 h2.day::after{content:"";flex:1;height:1px;background:var(--rule)}
 h2.day:first-child{margin-top:.25rem}
-.item{margin:0 0 .95rem}
+.item{margin:0 0 1.1rem}
+.item .s{font-size:.75rem;color:var(--muted);letter-spacing:.02em;line-height:1.5}
 .item .t{font-weight:500;line-height:1.35}
-.item .m{font-size:.8125rem;color:var(--muted);line-height:1.5}
-.item .d{font-size:.875rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .d{font-size:1rem;color:var(--fg);opacity:.8;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .m{font-size:.75rem;color:var(--muted);letter-spacing:.02em;line-height:1.6;margin-top:.1rem}
 .empty{color:var(--muted)}
 .pager{display:flex;justify-content:space-between;gap:1rem;font-size:.8125rem;color:var(--muted);margin:1.5rem 0 0}
 

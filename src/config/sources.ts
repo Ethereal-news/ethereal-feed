@@ -55,6 +55,8 @@ export interface ReleaseSource extends Base {
   label?: string;
   /** Store prereleases as published rather than hidden. */
   includePrerelease?: boolean;
+  /** Monorepos tag every package; keep only releases whose tag_name matches. */
+  tagFilter?: RegExp;
 }
 
 export interface DiscourseSource extends Base {
@@ -263,7 +265,7 @@ export const SOURCES: Source[] = [
   { id: "foundry-devops", name: "Foundry DevOps", type: "release", owner: "Cyfrin", repo: "foundry-devops", category: "developers", trust: "auto" },
   { id: "headlong", name: "Headlong", type: "release", owner: "esaulpaugh", repo: "headlong", category: "developers", trust: "auto" },
   { id: "ethers-js", name: "Ethers.js", type: "release", owner: "ethers-io", repo: "ethers.js", category: "developers", trust: "auto" },
-  { id: "ethereumjs-monorepo", name: "EthereumJS Monorepo", type: "release", owner: "ethereumjs", repo: "ethereumjs-monorepo", category: "developers", trust: "auto" },
+  { id: "ethereumjs-monorepo", name: "EthereumJS Monorepo", type: "release", owner: "ethereumjs", repo: "ethereumjs-monorepo", category: "developers", trust: "auto", tagFilter: /^@ethereumjs\/vm@/ },
   { id: "ethstaker-deposit-cli", name: "EthStaker Deposit CLI", type: "release", owner: "ethstaker", repo: "ethstaker-deposit-cli", category: "developers", trust: "auto" },
   { id: "voltaire", name: "Voltaire", type: "release", owner: "evmts", repo: "voltaire", category: "developers", trust: "auto" },
   { id: "forge-std", name: "Forge Std", type: "release", owner: "foundry-rs", repo: "forge-std", category: "developers", trust: "auto" },
@@ -274,7 +276,7 @@ export const SOURCES: Source[] = [
   { id: "gas-cost-estimator", name: "Gas Cost Estimator", type: "release", owner: "imapp-pl", repo: "gas-cost-estimator", category: "developers", trust: "auto" },
   { id: "heimdall", name: "Heimdall", type: "release", owner: "Jon-Becker", repo: "heimdall-rs", category: "developers", trust: "auto" },
   { id: "nethereum", name: "Nethereum", type: "release", owner: "Nethereum", repo: "Nethereum", category: "developers", trust: "auto" },
-  { id: "hardhat", name: "Hardhat", type: "release", owner: "NomicFoundation", repo: "hardhat", category: "developers", trust: "auto" },
+  { id: "hardhat", name: "Hardhat", type: "release", owner: "NomicFoundation", repo: "hardhat", category: "developers", trust: "auto", tagFilter: /^hardhat@/ },
   { id: "solx", name: "solx", type: "release", owner: "NomicFoundation", repo: "solx", category: "developers", trust: "auto" },
   { id: "openzeppelin-contracts", name: "OpenZeppelin Contracts", type: "release", owner: "OpenZeppelin", repo: "openzeppelin-contracts", category: "developers", trust: "auto" },
   { id: "otterscan", name: "Otterscan", type: "release", owner: "otterscan", repo: "otterscan", category: "developers", trust: "auto" },
@@ -289,14 +291,14 @@ export const SOURCES: Source[] = [
   { id: "solhint", name: "Solhint", type: "release", owner: "protofire", repo: "solhint", category: "developers", trust: "auto" },
   { id: "semaphore", name: "Semaphore", type: "release", owner: "semaphore-protocol", repo: "semaphore", category: "developers", trust: "auto" },
   { id: "solidity", name: "Solidity", type: "release", owner: "ethereum", repo: "solidity", category: "developers", trust: "auto" },
-  { id: "sourcify", name: "Sourcify", type: "release", owner: "ethereum", repo: "sourcify", category: "developers", trust: "auto" },
+  { id: "sourcify", name: "Sourcify", type: "release", owner: "ethereum", repo: "sourcify", category: "developers", trust: "auto", tagFilter: /^sourcify-server@/ },
   { id: "blst", name: "BLST", type: "release", owner: "supranational", repo: "blst", category: "developers", trust: "auto" },
   { id: "slither-mcp", name: "Slither MCP", type: "release", owner: "trailofbits", repo: "slither-mcp", category: "developers", trust: "auto" },
   { id: "zerokit", name: "ZeroKit", type: "release", owner: "vacp2p", repo: "zerokit", category: "developers", trust: "auto" },
   { id: "solady", name: "Solady", type: "release", owner: "Vectorized", repo: "solady", category: "developers", trust: "auto" },
   { id: "vyper", name: "Vyper", type: "release", owner: "vyperlang", repo: "vyper", category: "developers", trust: "auto" },
-  { id: "viem", name: "Viem", type: "release", owner: "wevm", repo: "viem", category: "developers", trust: "auto" },
-  { id: "wagmi", name: "Wagmi", type: "release", owner: "wevm", repo: "wagmi", category: "developers", trust: "auto" },
+  { id: "viem", name: "Viem", type: "release", owner: "wevm", repo: "viem", category: "developers", trust: "auto", tagFilter: /^viem@/ },
+  { id: "wagmi", name: "Wagmi", type: "release", owner: "wevm", repo: "wagmi", category: "developers", trust: "auto", tagFilter: /^wagmi@/ },
 
   // -------------------------------------------------------------- forums
   {
