@@ -14,7 +14,7 @@ export interface RawItem {
 }
 
 /** Items older than this at first sight are stored hidden (guards against archive re-emits). */
-const MAX_AGE_DAYS = 14;
+export const MAX_AGE_DAYS = 14;
 
 export async function runFetch(env: Env): Promise<void> {
   const runAt = new Date().toISOString();

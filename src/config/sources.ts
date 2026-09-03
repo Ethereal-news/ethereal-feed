@@ -118,9 +118,11 @@ export const SOURCES: Source[] = [
     category: "ecosystem", trust: "auto",
   },
   {
-    id: "geodework-blog", name: "Geodework Blog", type: "rss",
-    url: "https://geode.build/feed.xml",
-    category: "layer-1", trust: "auto",
+    // Geodework is now Geode Labs; geode.build has no feed and links its
+    // writing (ecosystem overviews, FOCIL 101) to this Substack.
+    id: "geodework-blog", name: "Local Ethereum (Geode Labs)", type: "rss",
+    url: "https://localethereum.substack.com/feed",
+    category: "ecosystem", trust: "auto",
   },
   {
     id: "argot-blog", name: "Argot Blog", type: "rss",
@@ -137,11 +139,8 @@ export const SOURCES: Source[] = [
     url: "https://zkevm.ethereum.foundation/feed.xml",
     category: "layer-1", trust: "auto",
   },
-  {
-    id: "pq-ethereum-blog", name: "PQ Ethereum Blog", type: "rss",
-    url: "https://pq.ethereum.org/feed.xml",
-    category: "layer-1", trust: "auto",
-  },
+  // "PQ Ethereum Blog" (https://pq.ethereum.org/feed.xml) removed 2026-09-03:
+  // the site is a single page with no posts and no feed. Re-add if it returns.
   {
     id: "protocol-support-blog", name: "Protocol Support Blog", type: "rss",
     url: "https://ps.ethereum.foundation/feed.xml",
