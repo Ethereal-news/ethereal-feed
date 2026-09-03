@@ -67,7 +67,6 @@ td.muted,.muted{color:var(--muted)}
 
 /* footer */
 footer{margin-top:3rem;font-size:.875rem}
-footer .note{margin:0 0 .75rem;font-size:.8125rem;color:var(--muted)}
 footer .row{display:flex;align-items:center;justify-content:space-between;gap:1rem}
 .pill{all:unset;cursor:pointer;position:relative;display:inline-flex;align-items:center;padding:.375rem .75rem .375rem 2rem;border:1px solid var(--edge);border-radius:.25rem;font-size:.875rem;line-height:1.25;transition:background-color .3s}
 .pill:hover{background:var(--hover)}

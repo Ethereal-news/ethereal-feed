@@ -83,7 +83,6 @@ ${cats}
 ${o.body}
 </main>
 <footer>
-<p class="note">Primary sources only.</p>
 <div class="row">
 <span>© ${year} • Ethereal news</span>
 <button id="top" type="button" class="pill">${ARROW_UP}Back to top</button>

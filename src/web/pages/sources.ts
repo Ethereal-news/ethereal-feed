@@ -8,10 +8,16 @@ import { age } from "../render";
 
 /** Display order for kinds. */
 const KIND_ORDER: Kind[] = [
+  "blog",
   "execution layer client",
   "consensus layer client",
+  "language",
+  "framework",
+  "client library",
+  "security",
+  "contract verification",
+  "library",
   "developer tool",
-  "blog",
   "forum",
 ];
 
