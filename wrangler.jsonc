@@ -1,0 +1,29 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ethereal-feed",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Uncomment once the river renders on the workers.dev URL.
+  // Deploying with this line attaches feed.ethereal.news and creates its DNS record.
+  // "routes": [{ "pattern": "feed.ethereal.news", "custom_domain": true }],
+
+  "triggers": { "crons": ["*/30 * * * *"] },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ethereal-feed",
+      "database_id": "REPLACE_WITH_ID_FROM_wrangler_d1_create",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  "vars": {
+    "SITE_URL": "https://feed.ethereal.news",
+    "SITE_NAME": "Ethereal news feed"
+  },
+
+  "observability": { "enabled": true }
+}

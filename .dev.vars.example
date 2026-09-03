@@ -1,0 +1,3 @@
+# Copy to .dev.vars (gitignored). Deployed value is set with:
+#   npx wrangler secret put GITHUB_TOKEN
+GITHUB_TOKEN=github_pat_...
