@@ -9,7 +9,7 @@
   // Deploying with this line attaches feed.ethereal.news and creates its DNS record.
   // "routes": [{ "pattern": "feed.ethereal.news", "custom_domain": true }],
 
-  "triggers": { "crons": ["*/30 * * * *"] },
+  "triggers": { "crons": ["7,37 * * * *"] },
 
   "d1_databases": [
     {

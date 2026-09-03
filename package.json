@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit",
     "db:migrate:local": "wrangler d1 migrations apply ethereal-feed --local",
     "db:migrate": "wrangler d1 migrations apply ethereal-feed --remote",
-    "cron:local": "curl -s \"http://localhost:8787/__scheduled?cron=*/30+*+*+*+*\""
+    "cron:local": "curl -s \"http://localhost:8787/__scheduled?cron=7,37+*+*+*+*\""
   },
   "dependencies": {
     "fast-xml-parser": "^5.3.5"
