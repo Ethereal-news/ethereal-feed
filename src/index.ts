@@ -1,4 +1,5 @@
 import { runFetch } from "./fetch/run";
+import { handleWeb } from "./web/router";
 
 export interface Env {
   DB: D1Database;
@@ -22,7 +23,6 @@ export default {
       return Response.json({ last_run: last?.run_at ?? null, errors: last?.errors ?? 0 });
     }
 
-    // River, feeds and pages arrive in step 1 tasks 5–6.
-    return new Response("ethereal feed: not built yet", { status: 404 });
+    return handleWeb(request, env);
   },
 } satisfies ExportedHandler<Env>;
