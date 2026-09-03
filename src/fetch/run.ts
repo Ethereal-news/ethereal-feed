@@ -1,5 +1,6 @@
 import type { Env } from "../index";
 import { SOURCES, type Source } from "../config/sources";
+import { checkLatestIssues } from "./newsletter";
 
 /** What every fetcher returns; run.ts turns these into rows. */
 export interface RawItem {
@@ -97,6 +98,13 @@ export async function runFetch(env: Env): Promise<void> {
     ).bind(runAt, source.id, msg.slice(0, 500));
   });
   await env.DB.batch(runRows);
+
+  // Newsletter appearances are best-effort; never let them fail the run.
+  try {
+    await checkLatestIssues(env);
+  } catch (e) {
+    console.error("newsletter check failed:", e instanceof Error ? e.message : e);
+  }
 }
 
 /**

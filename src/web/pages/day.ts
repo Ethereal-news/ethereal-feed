@@ -1,5 +1,5 @@
 import type { Env } from "../../index";
-import { listPublished } from "../../db/items";
+import { listPublished, newsletterAppearances } from "../../db/items";
 import { escapeHtml as h } from "../escape";
 import { htmlResponse, notFound } from "../layout";
 import { longDate, renderItem } from "../render";
@@ -28,9 +28,10 @@ export async function dayPage(env: Env, dateStr: string): Promise<Response> {
   const next = shift(day, 1);
   const prev = shift(day, -1);
   const items = await listPublished(env.DB, { from: day.toISOString(), to: `${next}T00:00:00.000Z` });
+  const issues = await newsletterAppearances(env.DB, items.map((i) => i.key));
 
   const list = items.length
-    ? items.map((i) => renderItem(i, now)).join("\n")
+    ? items.map((i) => renderItem(i, now, issues)).join("\n")
     : `<p class="empty">Nothing published on this day.</p>`;
 
   const showNext = next <= now.toISOString().slice(0, 10);

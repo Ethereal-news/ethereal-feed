@@ -73,12 +73,14 @@ export interface SourceStats {
   latest: Map<string, LatestRun>;
   /** run_at of the most recent successful run per source_id. */
   lastOk: Map<string, string>;
+  /** newsletter_links rows per source_id. */
+  newsletter: Map<string, number>;
 }
 
 /** Everything the /sources table needs, in one batch. */
 export async function sourceStats(db: D1Database, now = new Date()): Promise<SourceStats> {
   const since30 = new Date(now.getTime() - 30 * 86_400_000).toISOString();
-  const [counts, latest, lastOk] = await db.batch([
+  const [counts, latest, lastOk, newsletter] = await db.batch([
     db
       .prepare(
         `SELECT source_id, COUNT(*) AS total, SUM(CASE WHEN published_at >= ? THEN 1 ELSE 0 END) AS last30
@@ -90,6 +92,7 @@ export async function sourceStats(db: D1Database, now = new Date()): Promise<Sou
        WHERE id IN (SELECT MAX(id) FROM fetch_runs GROUP BY source_id)`
     ),
     db.prepare(`SELECT source_id, MAX(run_at) AS run_at FROM fetch_runs WHERE ok = 1 GROUP BY source_id`),
+    db.prepare(`SELECT source_id, COUNT(*) AS n FROM newsletter_links WHERE source_id IS NOT NULL GROUP BY source_id`),
   ]);
 
   return {
@@ -106,5 +109,23 @@ export async function sourceStats(db: D1Database, now = new Date()): Promise<Sou
       ])
     ),
     lastOk: new Map((lastOk.results as Array<{ source_id: string; run_at: string }>).map((r) => [r.source_id, r.run_at])),
+    newsletter: new Map((newsletter.results as Array<{ source_id: string; n: number }>).map((r) => [r.source_id, r.n])),
   };
+}
+
+/** For each item key, the URL of the most recent issue that linked to it. */
+export async function newsletterAppearances(db: D1Database, keys: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  for (let i = 0; i < keys.length; i += 90) {
+    const chunk = keys.slice(i, i + 90);
+    const res = await db
+      .prepare(
+        `SELECT item_key, issue_url, issue_date FROM newsletter_links
+         WHERE item_key IN (${chunk.map(() => "?").join(",")}) ORDER BY issue_date DESC`
+      )
+      .bind(...chunk)
+      .all<{ item_key: string; issue_url: string; issue_date: string }>();
+    for (const r of res.results) if (!out.has(r.item_key)) out.set(r.item_key, r.issue_url);
+  }
+  return out;
 }

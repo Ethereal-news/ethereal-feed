@@ -60,18 +60,23 @@ export function categoryName(slug: string): string {
   return isCategory(slug) ? CATEGORY_NAME[slug] : slug;
 }
 
+/** item key -> most recent newsletter issue URL that linked to it. */
+export type IssueMap = Map<string, string>;
+
 /**
  * One river entry:
  *   source            (muted, text-xs)
  *   title             (links out)
  *   summary           (one clamped line, body colour at 80%, only if non-empty)
- *   category · author · age   (muted, text-xs, tracked)
+ *   category · author · age · "in issue"   (muted, text-xs, tracked)
  */
-export function renderItem(item: ItemRow, now: Date): string {
+export function renderItem(item: ItemRow, now: Date, issues?: IssueMap): string {
+  const issue = issues?.get(item.key);
   const meta = [
     `<a href="/c/${h(item.category)}">${h(categoryName(item.category))}</a>`,
     item.author ? h(item.author) : "",
     `<time datetime="${h(item.published_at)}" title="${h(item.published_at)}">${h(age(item.published_at, now).text)}</time>`,
+    issue ? `<a class="issue" href="${h(issue)}" rel="noopener" title="Linked from an Ethereal news issue">in issue</a>` : "",
   ].filter(Boolean);
   const desc = item.description ? `\n<div class="d">${h(item.description)}</div>` : "";
   return `<article class="item">
@@ -82,7 +87,7 @@ export function renderItem(item: ItemRow, now: Date): string {
 }
 
 /** Items in order, with a running date header each time the UTC day changes. */
-export function renderRiver(items: ItemRow[], now: Date): string {
+export function renderRiver(items: ItemRow[], now: Date, issues?: IssueMap): string {
   if (items.length === 0) return `<p class="empty">Nothing here yet.</p>`;
   let out = "";
   let current = "";
@@ -92,7 +97,7 @@ export function renderRiver(items: ItemRow[], now: Date): string {
       current = key;
       out += `<h2 class="day"><a href="/day/${h(key)}">${h(dayLabel(key, now))}</a></h2>\n`;
     }
-    out += renderItem(item, now) + "\n";
+    out += renderItem(item, now, issues) + "\n";
   }
   return out;
 }

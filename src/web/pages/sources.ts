@@ -49,6 +49,7 @@ export async function sourcesPage(env: Env): Promise<Response> {
 <td class="muted">${h(s.kind)}</td>
 <td class="muted">${h(CATEGORY_NAME[s.category])}</td>
 ${c ? `<td class="n">${c.total}</td><td class="n">${c.last30}</td>` : `<td class="muted" colspan="2">no items yet</td>`}
+<td class="n">${stats.newsletter.get(s.id) ?? 0}</td>
 ${timeCell(stats.lastOk.get(s.id), now)}
 <td class="${failed ? "err" : "muted"}">${failed ? h(latest.error ?? "failed") : latest ? "ok" : ""}</td>
 </tr>`);
@@ -66,6 +67,7 @@ ${timeCell(stats.lastOk.get(s.id), now)}
 <td>—</td>
 <td>—</td>
 <td class="n">${c?.total ?? 0}</td><td class="n">${c?.last30 ?? 0}</td>
+<td class="n">${stats.newsletter.get(id) ?? 0}</td>
 ${timeCell(stats.lastOk.get(id), now)}
 <td>inactive</td>
 </tr>`);
@@ -74,7 +76,7 @@ ${timeCell(stats.lastOk.get(id), now)}
   const body = `<h1>Sources <span>${SOURCES.length} configured</span></h1>
 <div class="tablewrap">
 <table>
-<thead><tr><th>Source</th><th>Kind</th><th>Category</th><th class="n">Items</th><th class="n">30d</th><th>Last OK</th><th>Last run</th></tr></thead>
+<thead><tr><th>Source</th><th>Kind</th><th>Category</th><th class="n">Items</th><th class="n">30d</th><th class="n">Newsletter</th><th>Last OK</th><th>Last run</th></tr></thead>
 <tbody>
 ${rows.join("\n")}
 </tbody>
