@@ -68,10 +68,9 @@ ${feedLinks}
 <div class="bar">
 <div class="brand">
 <a class="home" href="https://ethereal.news">${LOGO}<span>Ethereal news</span></a>
-<span class="sub"><span class="sep">/</span><a href="/">feed</a></span>
+<span class="sub"><span class="sep">|</span><a href="/">feed</a></span>
 </div>
 <nav class="top" aria-label="Site">
-<a href="https://ethereal.news">newsletter</a>
 <a href="/sources">sources</a>
 <button id="theme" type="button" aria-label="Theme">${MOON}${SUN}</button>
 </nav>

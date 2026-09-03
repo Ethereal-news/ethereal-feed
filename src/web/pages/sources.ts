@@ -1,10 +1,19 @@
 import type { Env } from "../../index";
 import { CATEGORY_NAME } from "../../config/categories";
-import { SOURCES } from "../../config/sources";
+import { SOURCES, siteFor, type Kind } from "../../config/sources";
 import { sourceStats } from "../../db/items";
 import { escapeHtml as h } from "../escape";
 import { htmlResponse } from "../layout";
 import { age } from "../render";
+
+/** Display order for kinds. */
+const KIND_ORDER: Kind[] = [
+  "execution layer client",
+  "consensus layer client",
+  "developer tool",
+  "blog",
+  "forum",
+];
 
 function timeCell(iso: string | undefined, now: Date): string {
   if (!iso) return `<td class="muted">never</td>`;
@@ -18,14 +27,20 @@ export async function sourcesPage(env: Env): Promise<Response> {
   const now = new Date();
   const stats = await sourceStats(env.DB, now);
 
+  const sorted = [...SOURCES].sort(
+    (a, b) =>
+      KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) ||
+      a.name.localeCompare(b.name, "en", { sensitivity: "base" })
+  );
+
   const rows: string[] = [];
-  for (const s of SOURCES) {
+  for (const s of sorted) {
     const c = stats.counts.get(s.id);
     const latest = stats.latest.get(s.id);
     const failed = latest && latest.ok === 0;
-    const label = s.type === "release" && s.label ? s.label : s.name;
     rows.push(`<tr>
-<td>${h(label)}</td>
+<td><a href="${h(siteFor(s))}" target="_blank" rel="noopener">${h(s.name)}</a></td>
+<td class="muted">${h(s.kind)}</td>
 <td class="muted">${h(CATEGORY_NAME[s.category])}</td>
 ${c ? `<td class="n">${c.total}</td><td class="n">${c.last30}</td>` : `<td class="muted" colspan="2">no items yet</td>`}
 ${timeCell(stats.lastOk.get(s.id), now)}
@@ -43,6 +58,7 @@ ${timeCell(stats.lastOk.get(s.id), now)}
     rows.push(`<tr class="muted">
 <td>${h(id)}</td>
 <td>—</td>
+<td>—</td>
 <td class="n">${c?.total ?? 0}</td><td class="n">${c?.last30 ?? 0}</td>
 ${timeCell(stats.lastOk.get(id), now)}
 <td>inactive</td>
@@ -52,7 +68,7 @@ ${timeCell(stats.lastOk.get(id), now)}
   const body = `<h1>Sources <span>${SOURCES.length} configured</span></h1>
 <div class="tablewrap">
 <table>
-<thead><tr><th>Source</th><th>Category</th><th class="n">Items</th><th class="n">30d</th><th>Last OK</th><th>Last run</th></tr></thead>
+<thead><tr><th>Source</th><th>Kind</th><th>Category</th><th class="n">Items</th><th class="n">30d</th><th>Last OK</th><th>Last run</th></tr></thead>
 <tbody>
 ${rows.join("\n")}
 </tbody>

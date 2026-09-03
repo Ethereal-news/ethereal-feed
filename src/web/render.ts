@@ -1,5 +1,5 @@
 import { CATEGORY_NAME, isCategory } from "../config/categories";
-import { SOURCE_BY_ID } from "../config/sources";
+import { SOURCE_BY_ID, siteFor } from "../config/sources";
 import type { ItemRow } from "../db/items";
 import { escapeHtml as h } from "./escape";
 
@@ -43,11 +43,17 @@ export function relativeTime(iso: string, now: Date): string {
   return age(iso, now).text;
 }
 
-/** What the source line calls the source: release label, config name, or the raw id. */
+/** Config name for the source, or the raw id when it has been removed from config. */
 export function sourceLabel(item: Pick<ItemRow, "source_id">): string {
+  return SOURCE_BY_ID[item.source_id]?.name ?? item.source_id;
+}
+
+/** Source line: name linking to the source's site, then " · kind" unless it is a blog. */
+export function sourceLine(item: Pick<ItemRow, "source_id">): string {
   const s = SOURCE_BY_ID[item.source_id];
-  if (!s) return item.source_id;
-  return s.type === "release" && s.label ? s.label : s.name;
+  if (!s) return h(item.source_id);
+  const link = `<a href="${h(siteFor(s))}" target="_blank" rel="noopener">${h(s.name)}</a>`;
+  return s.kind === "blog" ? link : `${link} · ${h(s.kind)}`;
 }
 
 export function categoryName(slug: string): string {
@@ -69,7 +75,7 @@ export function renderItem(item: ItemRow, now: Date): string {
   ].filter(Boolean);
   const desc = item.description ? `\n<div class="d">${h(item.description)}</div>` : "";
   return `<article class="item">
-<div class="s">${h(sourceLabel(item))}</div>
+<div class="s">${sourceLine(item)}</div>
 <div class="t"><a href="${h(item.url)}" rel="noopener">${h(item.title)}</a></div>${desc}
 <div class="m">${meta.join(" · ")}</div>
 </article>`;

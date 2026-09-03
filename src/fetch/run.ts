@@ -16,19 +16,72 @@ export interface RawItem {
 /** Items older than this at first sight are stored hidden (guards against archive re-emits). */
 export const MAX_AGE_DAYS = 14;
 
+/** Gap between requests to the same rate-limited host. */
+const SAME_HOST_GAP_MS = 1_500;
+
+/**
+ * Where a source's request goes, for grouping. Substack subdomains share one
+ * rate limiter, so they collapse to one key. GitHub is token-authenticated and
+ * happy with concurrency, so it is left ungrouped.
+ */
+function fetchHost(source: Source): string | null {
+  switch (source.type) {
+    case "rss": {
+      const host = new URL(source.url).host;
+      return host.endsWith(".substack.com") ? "substack.com" : host;
+    }
+    case "scraped":   return new URL(source.listUrl).host;
+    case "discourse": return new URL(source.url).host;
+    case "release":
+    case "markdown":  return null;
+  }
+}
+
+type RunResult = { source: Source; found: number; inserted: number; ms: number };
+
 export async function runFetch(env: Env): Promise<void> {
   const runAt = new Date().toISOString();
   const cutoff = new Date(Date.now() - MAX_AGE_DAYS * 86_400_000);
 
-  const results = await Promise.allSettled(
-    SOURCES.map(async (source) => {
-      const started = Date.now();
-      const items = await fetchSource(source, env);
-      const fresh = items.filter((i) => new Date(i.published_at) >= cutoff);
-      const inserted = await upsertItems(env, source, fresh, runAt);
-      return { source, found: fresh.length, inserted, ms: Date.now() - started };
-    })
-  );
+  const one = async (source: Source): Promise<RunResult> => {
+    const started = Date.now();
+    const items = await fetchSource(source, env);
+    const fresh = items.filter((i) => new Date(i.published_at) >= cutoff);
+    const inserted = await upsertItems(env, source, fresh, runAt);
+    return { source, found: fresh.length, inserted, ms: Date.now() - started };
+  };
+
+  // Sources sharing a host run one after another with a gap; everything else in parallel.
+  const byHost = new Map<string, Source[]>();
+  for (const s of SOURCES) {
+    const host = fetchHost(s);
+    if (host) byHost.set(host, [...(byHost.get(host) ?? []), s]);
+  }
+  const settled = new Map<Source, PromiseSettledResult<RunResult>>();
+  const lanes: Promise<void>[] = [];
+  const settle = (source: Source, p: Promise<RunResult>) =>
+    p.then(
+      (value) => void settled.set(source, { status: "fulfilled", value }),
+      (reason) => void settled.set(source, { status: "rejected", reason })
+    );
+  for (const s of SOURCES) {
+    const host = fetchHost(s);
+    const group = host ? byHost.get(host)! : [s];
+    if (group.length === 1) {
+      lanes.push(settle(s, one(s)));
+    } else if (group[0] === s) {
+      lanes.push(
+        (async () => {
+          for (const [i, member] of group.entries()) {
+            if (i > 0) await new Promise((r) => setTimeout(r, SAME_HOST_GAP_MS));
+            await settle(member, one(member));
+          }
+        })()
+      );
+    }
+  }
+  await Promise.all(lanes);
+  const results = SOURCES.map((s) => settled.get(s)!);
 
   const runRows = results.map((r, i) => {
     const source = SOURCES[i];
@@ -78,7 +131,9 @@ async function upsertItems(env: Env, source: Source, items: RawItem[], fetchedAt
   const stmt = env.DB.prepare(`
     INSERT INTO items (key, url, title, description, source_id, source_type, category, author, version, prerelease, published_at, fetched_at, status)
     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
-    ON CONFLICT(key) DO UPDATE SET url = excluded.url, title = excluded.title
+    ON CONFLICT(key) DO UPDATE SET
+      url = excluded.url, title = excluded.title,
+      description = excluded.description, author = excluded.author
   `);
   await env.DB.batch(
     items.map((i) =>

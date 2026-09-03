@@ -49,6 +49,7 @@ h2.day::after{content:"";flex:1;height:1px;background:var(--rule)}
 h2.day:first-child{margin-top:.25rem}
 .item{margin:0 0 1.1rem}
 .item .s{font-size:.75rem;color:var(--muted);letter-spacing:.02em;line-height:1.5}
+.item .s a:hover{color:var(--fg)}
 .item .t{font-weight:500;line-height:1.35}
 .item .d{font-size:1rem;color:var(--fg);opacity:.8;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .item .m{font-size:.75rem;color:var(--muted);letter-spacing:.02em;line-height:1.6;margin-top:.1rem}
