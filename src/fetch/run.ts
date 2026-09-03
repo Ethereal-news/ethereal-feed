@@ -81,6 +81,7 @@ export async function runFetch(env: Env): Promise<void> {
     }
   }
   await Promise.all(lanes);
+  await publishTrusted(env);
   const results = SOURCES.map((s) => settled.get(s)!);
 
   const runRows = results.map((r, i) => {
@@ -96,6 +97,23 @@ export async function runFetch(env: Env): Promise<void> {
     ).bind(runAt, source.id, msg.slice(0, 500));
   });
   await env.DB.batch(runRows);
+}
+
+/**
+ * Allowlists are retroactive: pending rows whose author has since been added
+ * to trustedAuthors publish on the next run instead of staying stuck.
+ */
+async function publishTrusted(env: Env): Promise<void> {
+  const stmts = SOURCES.flatMap((s) => {
+    if (s.trust !== "allowlist" || s.type !== "discourse" || s.trustedAuthors.length === 0) return [];
+    const marks = s.trustedAuthors.map(() => "?").join(",");
+    return [
+      env.DB.prepare(
+        `UPDATE items SET status = 'published' WHERE status = 'pending' AND source_id = ? AND author IN (${marks})`
+      ).bind(s.id, ...s.trustedAuthors),
+    ];
+  });
+  if (stmts.length) await env.DB.batch(stmts);
 }
 
 async function fetchSource(source: Source, env: Env): Promise<RawItem[]> {

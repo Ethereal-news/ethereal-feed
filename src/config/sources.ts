@@ -345,14 +345,24 @@ export const SOURCES: Source[] = [
     url: "https://ethresear.ch",
     category: "layer-1", trust: "allowlist", kind: "forum",
     trustedAuthors: [
-      // Fill in as you approve authors from /pending.
+      "vbuterin", "Nero_eth", "mikeneuder", "aelowsson", "b-wagn", "donnoh",
+      "tcoratger", "weiihann", "CPerezz", "Giulio2002", "Julian", "LongMeng",
+      "Marcolopeez", "MatheusFranco99", "Pierre", "QED", "aliatiia", "alonmuroch",
+      "arantxazapico", "clesaege", "dcrapis", "edfelten", "fradamt", "hanniabu",
+      "jbaylina", "jcschlegel", "kubimens", "luca_zanolini", "mbahrani",
+      "misilva73", "namnc", "nicocsgy", "pcaversaccio", "soispoke", "zulu0echo",
     ],
   },
   {
     id: "eth-magicians", name: "Eth Magicians", type: "discourse",
     url: "https://ethereum-magicians.org",
     category: "layer-1", trust: "allowlist", kind: "forum",
-    trustedAuthors: [],
+    trustedAuthors: [
+      "abcoathup", "0xc0de4c0ffee", "CarlBeek", "chfast", "etan-status",
+      "jannikluhn", "jflo", "jihoonsong", "kevaundray", "leobago", "matt",
+      "mudgen", "nixo", "parithosh", "pintail", "ralexstokes", "soispoke",
+      "timbeiko",
+    ],
   },
 ];
 
