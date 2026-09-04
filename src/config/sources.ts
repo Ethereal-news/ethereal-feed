@@ -110,6 +110,12 @@ export const SOURCES: Source[] = [
     kind: "blog",
   },
   {
+    id: "buidlguidl-substack", name: "BuidlGuidl Substack", type: "rss",
+    url: "https://buidlguidl.substack.com/feed",
+    category: "developers", trust: "auto",
+    kind: "blog",
+  },
+  {
     id: "ethstaker-blog", name: "EthStaker blog", type: "rss",
     url: "https://api.paragraph.com/blogs/rss/@ethstaker",
     site: "https://paragraph.com/@ethstaker",
