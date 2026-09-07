@@ -1,7 +1,7 @@
 import type { ScrapedSource } from "../config/sources";
 import type { RawItem } from "./run";
 import { fetchText } from "./http";
-import { decodeEntities, normalizeUrl, truncate } from "./html";
+import { decodeEntities, normalizeUrl, stripHtml, truncate } from "./html";
 
 export interface ScrapedEntry {
   href: string;
@@ -104,11 +104,33 @@ function parseTerenceBlog(html: string): ScrapedEntry[] {
   return entries;
 }
 
+function parseLightclientBlog(html: string): ScrapedEntry[] {
+  // Zola list template, hrefs entity-escaped (&#x2F;):
+  //   <div class="post-preview"><h3 class="post-title"><a href="URL">Title</a></h3>
+  //   <small> September 05, 2026 - 19 mins </small>
+  //   <div class="summary"> text… <a href="URL">read more</a></div>
+  const itemRegex =
+    /<div class="post-preview">\s*<h3 class="post-title">\s*<a href="([^"]+)">([^<]+)<\/a>\s*<\/h3>\s*<small>\s*([A-Za-z]+ \d{1,2}, \d{4})[^<]*<\/small>(?:\s*<div class="summary">([\s\S]*?)<a href=)?/g;
+  const entries: ScrapedEntry[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = itemRegex.exec(html)) !== null) {
+    const [, rawHref, title, dateStr, summary] = m;
+    entries.push({
+      href: decodeEntities(rawHref),
+      title: decodeEntities(title),
+      description: summary ? stripHtml(summary) : "",
+      published: new Date(`${dateStr} UTC`),
+    });
+  }
+  return entries;
+}
+
 export const PARSERS: Record<ScrapedSource["parser"], Parser> = {
   consensus: parseConsensusBlog,
   pse: parsePseBlog,
   fe: parseFeBlog,
   terence: parseTerenceBlog,
+  lightclient: parseLightclientBlog,
 };
 
 export async function fetchScraped(source: ScrapedSource): Promise<RawItem[]> {

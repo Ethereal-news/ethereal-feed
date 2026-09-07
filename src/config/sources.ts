@@ -52,7 +52,7 @@ export interface ScrapedSource extends Base {
   listUrl: string;
   baseUrl: string;
   /** key into PARSERS in fetch/scraped.ts */
-  parser: "consensus" | "pse" | "fe" | "terence";
+  parser: "consensus" | "pse" | "fe" | "terence" | "lightclient";
 }
 
 export interface MarkdownSource extends Base {
@@ -274,6 +274,13 @@ export const SOURCES: Source[] = [
   {
     id: "terence-chain-blog", name: "Terence Chain blog", type: "scraped",
     listUrl: "https://terencechain.com/writing/", baseUrl: "https://terencechain.com", parser: "terence",
+    category: "layer-1", trust: "auto",
+    kind: "blog",
+  },
+  {
+    // Zola site, no feed generated; scrape the post list.
+    id: "lightclient-blog", name: "lightclient blog", type: "scraped",
+    listUrl: "https://lightclient.io/blog/", baseUrl: "https://lightclient.io", parser: "lightclient",
     category: "layer-1", trust: "auto",
     kind: "blog",
   },
