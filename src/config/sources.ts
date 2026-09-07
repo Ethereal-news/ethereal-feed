@@ -116,6 +116,12 @@ export const SOURCES: Source[] = [
     kind: "blog",
   },
   {
+    id: "nomic-foundation-blog", name: "Nomic Foundation blog", type: "rss",
+    url: "https://blog.nomic.foundation/rss/",
+    category: "developers", trust: "auto",
+    kind: "blog",
+  },
+  {
     id: "ethstaker-blog", name: "EthStaker blog", type: "rss",
     url: "https://api.paragraph.com/blogs/rss/@ethstaker",
     site: "https://paragraph.com/@ethstaker",
