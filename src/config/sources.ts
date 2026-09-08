@@ -169,12 +169,6 @@ export const SOURCES: Source[] = [
     kind: "blog",
   },
   {
-    id: "metamask-blog", name: "MetaMask blog", type: "rss",
-    url: "https://metamask.io/news-rss.xml",
-    category: "applications", trust: "auto",
-    kind: "blog",
-  },
-  {
     id: "zkevm-blog", name: "zkEVM blog", type: "rss",
     url: "https://zkevm.ethereum.foundation/feed.xml",
     category: "layer-1", trust: "auto",
