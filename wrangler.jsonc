@@ -5,9 +5,7 @@
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
 
-  // Uncomment once the river renders on the workers.dev URL.
-  // Deploying with this line attaches feed.ethereal.news and creates its DNS record.
-  // "routes": [{ "pattern": "feed.ethereal.news", "custom_domain": true }],
+  "routes": [{ "pattern": "feed.ethereal.news", "custom_domain": true }],
 
   "triggers": { "crons": ["7,37 * * * *"] },
 
