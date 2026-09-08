@@ -83,7 +83,7 @@ export async function runFetch(env: Env): Promise<void> {
   }
   await Promise.all(lanes);
   await publishTrusted(env);
-  await enforceTagFilters(env);
+  await enforceFilters(env);
   const results = SOURCES.map((s) => settled.get(s)!);
 
   const runRows = results.map((r, i) => {
@@ -126,29 +126,35 @@ async function publishTrusted(env: Env): Promise<void> {
 }
 
 /**
- * Tag filters are retroactive too: published release rows whose tag no longer
- * matches the source's tagFilter (rows inserted before the filter existed, or
- * before it was tightened) are hidden on every run. The tag is read back from
- * the key (`release:owner/repo:tag`) so the RegExp applies exactly as at
- * insert; D1 has no REGEXP and caps LIKE pattern length, so the match is
- * done here and the ids are hidden in one batch.
+ * Filters are retroactive too: published rows that no longer pass their
+ * source's filter (rows inserted before the filter existed, or before it was
+ * tightened) are hidden on every run. Release sources match tagFilter against
+ * the tag read back from the key (`release:owner/repo:tag`); RSS sources match
+ * titleFilter against the title. D1 has no REGEXP and caps LIKE pattern
+ * length, so the match is done here and the ids are hidden in one batch.
  */
-export async function enforceTagFilters(env: Env): Promise<number> {
-  const sources = SOURCES.filter((s) => s.type === "release" && s.tagFilter);
+export async function enforceFilters(env: Env): Promise<number> {
+  const sources = SOURCES.filter(
+    (s) => (s.type === "release" && s.tagFilter) || (s.type === "rss" && s.titleFilter)
+  );
   if (sources.length === 0) return 0;
 
   const marks = sources.map(() => "?").join(",");
   const rows = await env.DB.prepare(
-    `SELECT id, key, source_id FROM items WHERE status = 'published' AND source_id IN (${marks})`
-  ).bind(...sources.map((s) => s.id)).all<{ id: number; key: string; source_id: string }>();
+    `SELECT id, key, title, source_id FROM items WHERE status = 'published' AND source_id IN (${marks})`
+  ).bind(...sources.map((s) => s.id)).all<{ id: number; key: string; title: string; source_id: string }>();
 
   const ids: number[] = [];
   for (const row of rows.results) {
     const source = sources.find((s) => s.id === row.source_id);
-    if (!source || source.type !== "release" || !source.tagFilter) continue;
-    const prefix = `release:${source.owner}/${source.repo}:`;
-    const tag = row.key.startsWith(prefix) ? row.key.slice(prefix.length) : row.key;
-    if (!source.tagFilter.test(tag)) ids.push(row.id);
+    if (!source) continue;
+    if (source.type === "release" && source.tagFilter) {
+      const prefix = `release:${source.owner}/${source.repo}:`;
+      const tag = row.key.startsWith(prefix) ? row.key.slice(prefix.length) : row.key;
+      if (!source.tagFilter.test(tag)) ids.push(row.id);
+    } else if (source.type === "rss" && source.titleFilter) {
+      if (!source.titleFilter.test(row.title)) ids.push(row.id);
+    }
   }
   if (ids.length === 0) return 0;
 
@@ -162,7 +168,7 @@ export async function enforceTagFilters(env: Env): Promise<number> {
     );
   }
   await env.DB.batch(stmts);
-  console.log(`tag filters: hid ${ids.length} release row(s)`);
+  console.log(`filters: hid ${ids.length} row(s)`);
   return ids.length;
 }
 

@@ -45,6 +45,8 @@ export interface RssSource extends Base {
   url: string;
   /** Some feeds link to a dead or relative host; rewrite entry URLs. */
   rewriteUrl?: (url: string) => string;
+  /** Mixed blogs: keep only entries whose title matches (e.g. a monthly report series). */
+  titleFilter?: RegExp;
 }
 
 export interface ScrapedSource extends Base {
@@ -167,6 +169,14 @@ export const SOURCES: Source[] = [
     url: "https://www.argot.org/feed.xml",
     category: "developers", trust: "auto",
     kind: "blog",
+  },
+  {
+    // Only the monthly security report; the rest of the blog is product and market posts.
+    id: "metamask-blog", name: "MetaMask blog", type: "rss",
+    url: "https://metamask.io/news-rss.xml",
+    category: "security", trust: "auto",
+    kind: "blog",
+    titleFilter: /^Crypto Security Report\b/i,
   },
   {
     id: "zkevm-blog", name: "zkEVM blog", type: "rss",

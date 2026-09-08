@@ -101,10 +101,12 @@ export async function fetchRss(source: RssSource): Promise<RawItem[]> {
     if (!e.published || !e.title) continue;
     const url = source.rewriteUrl ? source.rewriteUrl(e.url) : e.url;
     if (!url) continue;
+    const title = stripHtml(e.title);
+    if (source.titleFilter && !source.titleFilter.test(title)) continue;
     items.push({
       key: feedKey(source.id, e.guid, url),
       url,
-      title: stripHtml(e.title),
+      title,
       description: cleanDescription(e.description),
       author: e.author || undefined,
       published_at: e.published.toISOString(),
