@@ -6,6 +6,8 @@
   "compatibility_flags": ["nodejs_compat"],
 
   "routes": [{ "pattern": "feed.ethereal.news", "custom_domain": true }],
+  // Adding a route turns workers.dev off by default; keep it as a fallback URL.
+  "workers_dev": true,
 
   "triggers": { "crons": ["7,37 * * * *"] },
 
