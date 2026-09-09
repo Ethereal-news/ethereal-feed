@@ -1,8 +1,8 @@
 /**
  * Site CSS, inlined into every page. Mirrors ethereal.news: 640px column with
  * 0.75rem padding, #fafafa / #171717 swapped between light and dark, muted
- * nav at 60% that goes full on hover. Theme follows prefers-color-scheme unless
- * <html data-theme="light|dark"> overrides it.
+ * nav at 60% that goes full on hover. Theme follows prefers-color-scheme (the
+ * "system" preference) unless <html data-theme="light|dark"> overrides it.
  */
 const LIGHT = `--bg:#fafafa;--fg:#171717;--muted:#6b6b6b;--nav:rgba(0,0,0,.6);--rule:#e4e4e4;--edge:rgba(0,0,0,.15);--hover:rgba(0,0,0,.05);--err:#b42318;color-scheme:light`;
 const DARK = `--bg:#171717;--fg:#fafafa;--muted:#9c9c9c;--nav:rgba(255,255,255,.6);--rule:#2c2c2c;--edge:rgba(255,255,255,.2);--hover:rgba(255,255,255,.05);--err:#f97066;color-scheme:dark`;
@@ -32,10 +32,11 @@ nav.top{display:flex;align-items:center;gap:1.5rem;font-size:.875rem;text-transf
 nav.top a,#theme{color:var(--nav);transition:color .3s}
 nav.top a:hover,#theme:hover{color:var(--fg)}
 #theme{all:unset;cursor:pointer;display:flex;color:var(--nav);transition:color .3s}
-#theme .sun{display:none}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]) #theme .moon{display:none}:root:not([data-theme=light]) #theme .sun{display:block}}
-:root[data-theme=dark] #theme .moon{display:none}
-:root[data-theme=dark] #theme .sun{display:block}
+/* icon shows the chosen preference: monitor = system (no data-theme), sun = light, moon = dark */
+#theme .sun,#theme .moon{display:none}
+:root[data-theme=light] #theme .sun{display:block}
+:root[data-theme=dark] #theme .moon{display:block}
+:root[data-theme=light] #theme .system,:root[data-theme=dark] #theme .system{display:none}
 nav.cats{display:flex;flex-wrap:wrap;gap:.15rem 1rem;margin-top:.5rem;font-size:.75rem;color:var(--nav)}
 nav.cats a{transition:color .3s}
 nav.cats a:hover,nav.cats a[aria-current]{color:var(--fg)}

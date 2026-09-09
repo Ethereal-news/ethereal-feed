@@ -18,8 +18,9 @@ export interface PageOpts {
 // Runs before first paint so a stored preference never flashes the other theme.
 const THEME_BOOT = `(function(){try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}})();`;
 
-// Theme cycles system -> light -> dark; "system" removes the key so prefers-color-scheme
-// applies. The icon swap is CSS-only (see styles.ts). "Back to top" scrolls the window.
+// Theme cycles system -> light -> dark, as on ethereal.news; "system" removes the key so
+// prefers-color-scheme applies. The icon shows the chosen preference (monitor, sun, moon)
+// and is swapped by CSS only (see styles.ts). "Back to top" scrolls the window.
 const CLIENT_JS = `(function(){var b=document.getElementById("theme");var r=document.documentElement;function cur(){try{var t=localStorage.getItem("theme");return t==="light"||t==="dark"?t:"system"}catch(e){return"system"}}function label(m){b.setAttribute("aria-label","Theme: "+m+". Activate to change.");b.title="Theme: "+m}if(b){label(cur());b.addEventListener("click",function(){var n={system:"light",light:"dark",dark:"system"}[cur()];try{if(n==="system")localStorage.removeItem("theme");else localStorage.setItem("theme",n)}catch(e){}if(n==="system")r.removeAttribute("data-theme");else r.setAttribute("data-theme",n);label(n)})}var t=document.getElementById("top");if(t)t.addEventListener("click",function(){window.scrollTo({top:0,behavior:"smooth"})})})();`;
 
 // ethereal.news logo, 20x20, currentColor.
@@ -28,6 +29,7 @@ const LOGO = `<svg class="logo" width="20" height="20" viewBox="0 0 400 400" fil
 const ICON_ATTRS = `width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"`;
 const MOON = `<svg class="moon" ${ICON_ATTRS}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>`;
 const SUN = `<svg class="sun" ${ICON_ATTRS}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`;
+const MONITOR = `<svg class="system" ${ICON_ATTRS}><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>`;
 const ARROW_UP = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>`;
 const RSS = `<svg ${ICON_ATTRS}><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>`;
 const X_LOGO = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`;
@@ -72,7 +74,7 @@ ${feedLinks}
 </div>
 <nav class="top" aria-label="Site">
 <a href="/sources">sources</a>
-<button id="theme" type="button" aria-label="Theme">${MOON}${SUN}</button>
+<button id="theme" type="button" aria-label="Theme: system" title="Theme: system">${MONITOR}${SUN}${MOON}</button>
 </nav>
 </div>
 <nav class="cats" aria-label="Categories">
