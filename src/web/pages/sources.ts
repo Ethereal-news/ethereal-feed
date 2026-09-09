@@ -83,5 +83,10 @@ ${rows.join("\n")}
 </table>
 </div>`;
 
-  return htmlResponse(env, { title: "Sources", body });
+  return htmlResponse(env, {
+    title: "Sources",
+    description: "The primary sources behind Ethereal news feed.",
+    path: "/sources",
+    body,
+  });
 }

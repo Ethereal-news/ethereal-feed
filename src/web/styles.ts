@@ -4,8 +4,8 @@
  * nav at 60% that goes full on hover. Theme follows prefers-color-scheme (the
  * "system" preference) unless <html data-theme="light|dark"> overrides it.
  */
-const LIGHT = `--bg:#fafafa;--fg:#171717;--muted:#6b6b6b;--nav:rgba(0,0,0,.6);--rule:#e4e4e4;--edge:rgba(0,0,0,.15);--hover:rgba(0,0,0,.05);--err:#b42318;color-scheme:light`;
-const DARK = `--bg:#171717;--fg:#fafafa;--muted:#9c9c9c;--nav:rgba(255,255,255,.6);--rule:#2c2c2c;--edge:rgba(255,255,255,.2);--hover:rgba(255,255,255,.05);--err:#f97066;color-scheme:dark`;
+const LIGHT = `--bg:#fafafa;--fg:#171717;--muted:#6b6b6b;--nav:rgba(0,0,0,.6);--pipe:rgba(0,0,0,.3);--underline:rgba(0,0,0,.5);--full:#000;--rule:#e4e4e4;--edge:rgba(0,0,0,.15);--hover:rgba(0,0,0,.05);--err:#b42318;color-scheme:light`;
+const DARK = `--bg:#171717;--fg:#fafafa;--muted:#9c9c9c;--nav:rgba(255,255,255,.6);--pipe:rgba(255,255,255,.3);--underline:rgba(255,255,255,.5);--full:#fff;--rule:#2c2c2c;--edge:rgba(255,255,255,.2);--hover:rgba(255,255,255,.05);--err:#f97066;color-scheme:dark`;
 
 export const CSS = `
 :root{${LIGHT}}
@@ -22,16 +22,20 @@ svg{display:block}
 /* header */
 header{margin-bottom:1.25rem}
 .bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem 1.5rem;min-height:2.5rem}
-.brand{display:flex;align-items:center;gap:.5rem;font-weight:600;white-space:nowrap}
-.brand .home{display:flex;align-items:center;gap:.5rem}
-.brand .sub{color:var(--nav);font-weight:400}
-.brand .sep{margin-right:.5rem}
-.brand .sub a{transition:color .3s}
-.brand .sub a:hover{color:var(--fg)}
+/* wordmark: logo + "Ethereal news" (semibold, current colour -> full on hover), then a muted "| feed" */
+.brand{display:flex;align-items:center;gap:.5rem;white-space:nowrap}
+.brand .home{display:flex;align-items:center;gap:.5rem;font-weight:600;color:currentColor;transition:color .3s ease-in-out}
+.brand .sep{color:var(--pipe)}
+.brand .feed{color:var(--nav);font-weight:400;transition:color .3s ease-in-out}
+.brand .home:hover,.brand .feed:hover,.brand .home:focus-visible,.brand .feed:focus-visible{color:var(--full)}
 nav.top{display:flex;align-items:center;gap:1.5rem;font-size:.875rem;text-transform:lowercase}
-nav.top a,#theme{color:var(--nav);transition:color .3s}
-nav.top a:hover,#theme:hover{color:var(--fg)}
-#theme{all:unset;cursor:pointer;display:flex;color:var(--nav);transition:color .3s}
+/* the site's .nav-link: colour to full black/white plus a 1px underline that grows from the left */
+.nav-link{position:relative;color:currentColor;transition:color .3s ease-in-out}
+.nav-link::after{content:"";position:absolute;left:0;bottom:-.25rem;width:0;height:1px;background:var(--underline);transition:all .3s ease-in-out}
+.nav-link:hover,.nav-link:focus-visible{color:var(--full)}
+.nav-link:hover::after,.nav-link:focus-visible::after{width:100%}
+#theme:hover{color:var(--full)}
+#theme{all:unset;cursor:pointer;display:flex;color:var(--nav);transition:color .3s ease-in-out}
 /* icon shows the chosen preference: monitor = system (no data-theme), sun = light, moon = dark */
 #theme .sun,#theme .moon{display:none}
 :root[data-theme=light] #theme .sun{display:block}

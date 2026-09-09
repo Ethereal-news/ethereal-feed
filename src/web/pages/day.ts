@@ -1,7 +1,7 @@
 import type { Env } from "../../index";
 import { listPublished, newsletterAppearances } from "../../db/items";
 import { escapeHtml as h } from "../escape";
-import { htmlResponse, notFound } from "../layout";
+import { describe, htmlResponse, notFound } from "../layout";
 import { longDate, renderItem } from "../render";
 
 /** Parse YYYY-MM-DD strictly; rejects impossible dates like 2026-02-30. */
@@ -41,7 +41,9 @@ ${showNext ? `<a href="/day/${next}" rel="next">${h(longDate(next))} →</a>` : 
 </nav>`;
 
   return htmlResponse(env, {
-    title: longDate(key),
+    title: `Ethereum news for ${longDate(key)}`,
+    description: describe(`Ethereum news for ${longDate(key)}`),
+    path: `/day/${key}`,
     body: `<h1>${h(longDate(key))} <span>UTC</span></h1>\n${list}\n${pager}`,
   });
 }

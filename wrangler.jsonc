@@ -2,6 +2,8 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "ethereal-feed",
   "main": "src/index.ts",
+  // Favicons and logo, served before the Worker runs for matching paths.
+  "assets": { "directory": "./public" },
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
 
