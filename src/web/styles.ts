@@ -70,6 +70,18 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 td.err{color:var(--err);white-space:normal;min-width:14rem}
 td.muted,.muted{color:var(--muted)}
 
+/* pending review queue */
+.pending h2{font-size:1rem;font-weight:600;margin:1.75rem 0 .5rem}
+.pending h2 span{color:var(--muted);font-weight:400}
+.pending pre{font-size:.75rem;line-height:1.5;margin:0 0 .75rem;padding:.6rem .75rem;border:1px solid var(--rule);border-radius:.25rem;overflow-x:auto;white-space:pre}
+.pending pre .new{color:var(--err);font-weight:600}
+.pending .hint{font-size:.75rem;color:var(--muted);margin:0 0 .5rem}
+.pending td.a{white-space:normal}
+.pending td.t{white-space:normal;min-width:16rem}
+.pending form{display:inline}
+.pending .hide{all:unset;cursor:pointer;font-size:.75rem;color:var(--muted);border:1px solid var(--edge);border-radius:.25rem;padding:.1rem .5rem;transition:background-color .3s}
+.pending .hide:hover{background:var(--hover);color:var(--fg)}
+
 /* footer */
 footer{margin-top:3rem;font-size:.875rem}
 footer .row{display:flex;align-items:center;justify-content:space-between;gap:1rem}

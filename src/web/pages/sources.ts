@@ -19,6 +19,7 @@ const KIND_ORDER: Kind[] = [
   "library",
   "developer tool",
   "forum",
+  "tracker",
 ];
 
 function timeCell(iso: string | undefined, now: Date): string {

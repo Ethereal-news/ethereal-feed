@@ -61,6 +61,37 @@ export async function listPublished(db: D1Database, opts: ListOpts = {}): Promis
   return res.results;
 }
 
+/** Pending items (allowlist sources awaiting review), newest first. */
+export async function listPending(db: D1Database): Promise<ItemRow[]> {
+  const res = await db
+    .prepare(`SELECT ${COLS} FROM items WHERE status = 'pending' ORDER BY published_at DESC, id DESC`)
+    .all<ItemRow>();
+  return res.results;
+}
+
+/** "source_id\nauthor" -> number of pending + published topics by that author on that source. */
+export async function authorTopicCounts(db: D1Database, sourceIds: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (sourceIds.length === 0) return out;
+  const res = await db
+    .prepare(
+      `SELECT source_id, author, COUNT(*) AS n FROM items
+       WHERE status IN ('pending', 'published') AND author IS NOT NULL
+         AND source_id IN (${sourceIds.map(() => "?").join(",")})
+       GROUP BY source_id, author`
+    )
+    .bind(...sourceIds)
+    .all<{ source_id: string; author: string; n: number }>();
+  for (const r of res.results) out.set(`${r.source_id}\n${r.author}`, r.n);
+  return out;
+}
+
+/** Reject a pending item; returns whether a row changed. */
+export async function hidePending(db: D1Database, id: number): Promise<boolean> {
+  const res = await db.prepare(`UPDATE items SET status = 'hidden' WHERE id = ? AND status = 'pending'`).bind(id).run();
+  return (res.meta.changes ?? 0) > 0;
+}
+
 export interface SourceCounts {
   total: number;
   last30: number;

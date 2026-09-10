@@ -17,6 +17,8 @@ export interface PageOpts {
   active?: string;
   /** Per-category feed, advertised alongside the main one. */
   categoryFeed?: { href: string; title: string };
+  /** Unlisted admin pages: Cache-Control: no-store and a robots noindex. */
+  private?: boolean;
 }
 
 // Runs before first paint so a stored preference never flashes the other theme.
@@ -95,7 +97,7 @@ ${feedLinks}
 <meta name="twitter:image" content="${OG_IMAGE}">
 <meta name="twitter:site" content="@EtherealnewsHQ">
 <meta name="twitter:creator" content="@abcoathup">
-<script>${THEME_BOOT}</script>
+${o.private ? '<meta name="robots" content="noindex, nofollow">\n' : ""}<script>${THEME_BOOT}</script>
 <style>${CSS}</style>
 </head>
 <body>
@@ -143,7 +145,7 @@ export function htmlResponse(env: Env, o: PageOpts, status = 200): Response {
     status,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": PUBLIC_CACHE,
+      "Cache-Control": o.private ? "no-store" : PUBLIC_CACHE,
     },
   });
 }
