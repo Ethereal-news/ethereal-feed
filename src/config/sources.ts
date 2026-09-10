@@ -28,7 +28,8 @@ export type Kind =
   | "contract verification"
   | "library"
   | "developer tool"
-  | "forum";
+  | "forum"
+  | "tracker";
 
 interface Base {
   id: string;
@@ -367,6 +368,15 @@ export const SOURCES: Source[] = [
   { id: "vyper", name: "Vyper", type: "release", owner: "vyperlang", repo: "vyper", category: "developers", trust: "auto", kind: "language" },
   { id: "viem", name: "Viem", type: "release", owner: "wevm", repo: "viem", category: "developers", trust: "auto", kind: "client library", tagFilter: /^viem@/ },
   { id: "wagmi", name: "Wagmi", type: "release", owner: "wevm", repo: "wagmi", category: "developers", trust: "auto", kind: "client library", tagFilter: /^wagmi@/ },
+
+  // -------------------------------------------------------------- trackers
+  {
+    // Upgrade tracker: call notes published, devnet launches, EIP scheduling changes.
+    id: "forkcast", name: "Forkcast", type: "rss",
+    url: "https://forkcast.org/feed.xml",
+    category: "layer-1", trust: "auto",
+    kind: "tracker",
+  },
 
   // -------------------------------------------------------------- forums
   {
