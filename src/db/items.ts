@@ -11,6 +11,7 @@ export interface ItemRow {
   source_type: string;
   category: string;
   author: string | null;
+  author_name: string | null;
   version: string | null;
   prerelease: number;
   published_at: string;
@@ -19,7 +20,12 @@ export interface ItemRow {
 }
 
 const COLS =
-  "id, key, url, title, description, source_id, source_type, category, author, version, prerelease, published_at, fetched_at, status";
+  "id, key, url, title, description, source_id, source_type, category, author, author_name, version, prerelease, published_at, fetched_at, status";
+
+/** Name to show for an item's author: the display name where set, else the username. */
+export function authorName(i: Pick<ItemRow, "author" | "author_name">): string | null {
+  return i.author_name || i.author;
+}
 
 export interface ListOpts {
   limit?: number;

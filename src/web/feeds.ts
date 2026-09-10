@@ -1,6 +1,6 @@
 import type { Env } from "../index";
 import { CATEGORY_NAME, type Category } from "../config/categories";
-import { listPublished, type ItemRow } from "../db/items";
+import { authorName, listPublished, type ItemRow } from "../db/items";
 import { escapeXml as x } from "./escape";
 import { PUBLIC_CACHE } from "./layout";
 import { categoryName } from "./render";
@@ -35,7 +35,7 @@ function rssItem(i: ItemRow): string {
 <link>${x(i.url)}</link>
 <guid isPermaLink="false">${x(i.key)}</guid>
 <pubDate>${new Date(i.published_at).toUTCString()}</pubDate>
-${i.author ? `<dc:creator>${x(i.author)}</dc:creator>\n` : ""}<category>${x(categoryName(i.category))}</category>
+${authorName(i) ? `<dc:creator>${x(authorName(i)!)}</dc:creator>\n` : ""}<category>${x(categoryName(i.category))}</category>
 <description>${x(i.description)}</description>
 </item>`;
 }
@@ -83,7 +83,7 @@ export async function jsonFeed(env: Env, category?: Category): Promise<Response>
       content_text: i.description || i.title,
       ...(i.description ? { summary: i.description } : {}),
       date_published: i.published_at,
-      ...(i.author ? { authors: [{ name: i.author }] } : {}),
+      ...(authorName(i) ? { authors: [{ name: authorName(i)! }] } : {}),
       tags: [categoryName(i.category)],
     })),
   };

@@ -8,7 +8,10 @@ export interface RawItem {
   url: string;
   title: string;
   description?: string;
+  /** Username for discourse (allowlists match on it), otherwise whatever the feed gives. */
   author?: string;
+  /** Display name where the forum has one; shown in place of `author`. */
+  author_name?: string;
   version?: string;
   prerelease?: boolean;
   published_at: string; // ISO
@@ -203,17 +206,17 @@ async function upsertItems(env: Env, source: Source, items: RawItem[], fetchedAt
   const inserted = keys.filter((k) => !known.has(k)).length;
 
   const stmt = env.DB.prepare(`
-    INSERT INTO items (key, url, title, description, source_id, source_type, category, author, version, prerelease, published_at, fetched_at, status)
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+    INSERT INTO items (key, url, title, description, source_id, source_type, category, author, author_name, version, prerelease, published_at, fetched_at, status)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
     ON CONFLICT(key) DO UPDATE SET
       url = excluded.url, title = excluded.title,
-      description = excluded.description, author = excluded.author
+      description = excluded.description, author = excluded.author, author_name = excluded.author_name
   `);
   await env.DB.batch(
     items.map((i) =>
       stmt.bind(
         i.key, i.url, i.title, (i.description ?? "").slice(0, 200),
-        source.id, source.type, source.category, i.author ?? null, i.version ?? null,
+        source.id, source.type, source.category, i.author ?? null, i.author_name ?? null, i.version ?? null,
         i.prerelease ? 1 : 0, i.published_at, fetchedAt, statusFor(source, i)
       )
     )

@@ -1,6 +1,6 @@
 import { CATEGORY_NAME, isCategory } from "../config/categories";
 import { SOURCE_BY_ID, siteFor } from "../config/sources";
-import type { ItemRow } from "../db/items";
+import { authorName, type ItemRow } from "../db/items";
 import { escapeHtml as h } from "./escape";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -83,7 +83,7 @@ export function renderItem(item: ItemRow, now: Date, issues?: IssueMap): string 
   const issue = issues?.get(item.key);
   const meta = [
     `<a href="/c/${h(item.category)}">${h(categoryName(item.category))}</a>`,
-    item.author ? h(item.author) : "",
+    authorName(item) ? h(authorName(item)!) : "",
     `<time datetime="${h(item.published_at)}" title="${h(item.published_at)}">${h(age(item.published_at, now).text)}</time>`,
     issue ? `<a class="issue" href="${h(issue)}" rel="noopener" title="Linked from an Ethereal news issue">in ${h(issueLabel(issue))}</a>` : "",
   ].filter(Boolean);
