@@ -64,11 +64,20 @@ export function categoryName(slug: string): string {
 export type IssueMap = Map<string, string>;
 
 /**
+ * Label for a newsletter issue from its URL slug: ".../ethereal-news-weekly-33/" -> "weekly #33",
+ * ".../ethereal-news-mini-2/" -> "mini #2". Falls back to "issue" for anything else.
+ */
+export function issueLabel(url: string): string {
+  const m = url.match(/ethereal-news-([a-z]+)-(\d+)\/?$/);
+  return m ? `${m[1]} #${m[2]}` : "issue";
+}
+
+/**
  * One river entry:
  *   source            (muted, text-xs)
  *   title             (links out)
  *   summary           (one clamped line, body colour at 80%, only if non-empty)
- *   category · author · age · "in issue"   (muted, text-xs, tracked)
+ *   category · author · age · "in weekly #33"   (muted, text-xs, tracked)
  */
 export function renderItem(item: ItemRow, now: Date, issues?: IssueMap): string {
   const issue = issues?.get(item.key);
@@ -76,7 +85,7 @@ export function renderItem(item: ItemRow, now: Date, issues?: IssueMap): string 
     `<a href="/c/${h(item.category)}">${h(categoryName(item.category))}</a>`,
     item.author ? h(item.author) : "",
     `<time datetime="${h(item.published_at)}" title="${h(item.published_at)}">${h(age(item.published_at, now).text)}</time>`,
-    issue ? `<a class="issue" href="${h(issue)}" rel="noopener" title="Linked from an Ethereal news issue">in issue</a>` : "",
+    issue ? `<a class="issue" href="${h(issue)}" rel="noopener" title="Linked from an Ethereal news issue">in ${h(issueLabel(issue))}</a>` : "",
   ].filter(Boolean);
   const desc = item.description ? `\n<div class="d">${h(item.description)}</div>` : "";
   return `<article class="item">
