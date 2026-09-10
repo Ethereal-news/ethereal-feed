@@ -55,7 +55,7 @@ export interface ScrapedSource extends Base {
   listUrl: string;
   baseUrl: string;
   /** key into PARSERS in fetch/scraped.ts */
-  parser: "consensus" | "pse" | "fe" | "terence" | "lightclient";
+  parser: "consensus" | "pse" | "fe" | "terence" | "lightclient" | "optimism";
 }
 
 export interface MarkdownSource extends Base {
@@ -300,12 +300,12 @@ export const SOURCES: Source[] = [
 
   // ------------------------------------------------------- client releases
   { id: "geth", name: "Geth", type: "release", owner: "ethereum", repo: "go-ethereum", category: "staking", trust: "auto", kind: "execution layer client" },
-  { id: "erigon", name: "Erigon", type: "release", owner: "ledgerwatch", repo: "erigon", category: "staking", trust: "auto", kind: "execution layer client" },
+  { id: "erigon", name: "Erigon", type: "release", owner: "erigontech", repo: "erigon", category: "staking", trust: "auto", kind: "execution layer client" },
   { id: "nethermind", name: "Nethermind", type: "release", owner: "NethermindEth", repo: "nethermind", category: "staking", trust: "auto", kind: "execution layer client" },
   { id: "besu", name: "Besu", type: "release", owner: "besu-eth", repo: "besu", category: "staking", trust: "auto", kind: "execution layer client" },
   { id: "reth", name: "Reth", type: "release", owner: "paradigmxyz", repo: "reth", category: "staking", trust: "auto", kind: "execution layer client" },
   { id: "ethrex", name: "Ethrex", type: "release", owner: "lambdaclass", repo: "ethrex", category: "staking", trust: "auto", kind: "execution layer client" },
-  { id: "prysm", name: "Prysm", type: "release", owner: "prysmaticlabs", repo: "prysm", category: "staking", trust: "auto", kind: "consensus layer client" },
+  { id: "prysm", name: "Prysm", type: "release", owner: "OffchainLabs", repo: "prysm", category: "staking", trust: "auto", kind: "consensus layer client" },
   { id: "lighthouse", name: "Lighthouse", type: "release", owner: "sigp", repo: "lighthouse", category: "staking", trust: "auto", kind: "consensus layer client" },
   { id: "teku", name: "Teku", type: "release", owner: "ConsenSys", repo: "teku", category: "staking", trust: "auto", kind: "consensus layer client" },
   { id: "nimbus", name: "Nimbus", type: "release", owner: "status-im", repo: "nimbus-eth2", category: "staking", trust: "auto", kind: "consensus layer client" },
@@ -359,7 +359,7 @@ export const SOURCES: Source[] = [
   { id: "prettier-solidity", name: "Prettier Solidity", type: "release", owner: "prettier-solidity", repo: "prettier-plugin-solidity", category: "developers", trust: "auto", kind: "developer tool" },
   { id: "solhint", name: "Solhint", type: "release", owner: "protofire", repo: "solhint", category: "developers", trust: "auto", kind: "security" },
   { id: "semaphore", name: "Semaphore", type: "release", owner: "semaphore-protocol", repo: "semaphore", category: "developers", trust: "auto", kind: "library" },
-  { id: "solidity", name: "Solidity", type: "release", owner: "ethereum", repo: "solidity", category: "developers", trust: "auto", kind: "language" },
+  { id: "solidity", name: "Solidity", type: "release", owner: "argotorg", repo: "solidity", category: "developers", trust: "auto", kind: "language" },
   { id: "sourcify", name: "Sourcify", type: "release", owner: "ethereum", repo: "sourcify", category: "developers", trust: "auto", kind: "contract verification", tagFilter: /^sourcify-server@/ },
   { id: "blst", name: "BLST", type: "release", owner: "supranational", repo: "blst", category: "developers", trust: "auto", kind: "library" },
   { id: "slither-mcp", name: "Slither MCP", type: "release", owner: "trailofbits", repo: "slither-mcp", category: "developers", trust: "auto", kind: "security" },
@@ -368,6 +368,33 @@ export const SOURCES: Source[] = [
   { id: "vyper", name: "Vyper", type: "release", owner: "vyperlang", repo: "vyper", category: "developers", trust: "auto", kind: "language" },
   { id: "viem", name: "Viem", type: "release", owner: "wevm", repo: "viem", category: "developers", trust: "auto", kind: "client library", tagFilter: /^viem@/ },
   { id: "wagmi", name: "Wagmi", type: "release", owner: "wevm", repo: "wagmi", category: "developers", trust: "auto", kind: "client library", tagFilter: /^wagmi@/ },
+
+  {
+    // No feed; the blog index is scraped (see fetch/scraped.ts).
+    id: "optimism-blog", name: "Optimism blog", type: "scraped",
+    listUrl: "https://optimism.io/blog", baseUrl: "https://optimism.io",
+    parser: "optimism",
+    category: "layer-2", trust: "auto",
+    kind: "blog",
+  },
+  {
+    id: "seal-radar", name: "SEAL Radar", type: "rss",
+    url: "https://radar.securityalliance.org/rss/",
+    category: "security", trust: "auto",
+    kind: "blog",
+  },
+  {
+    id: "lido-blog", name: "Lido blog", type: "rss",
+    url: "https://blog.lido.fi/rss/",
+    category: "staking", trust: "auto",
+    kind: "blog",
+  },
+  {
+    id: "arbitrum-blog", name: "Arbitrum blog", type: "rss",
+    url: "https://blog.arbitrum.io/rss/",
+    category: "layer-2", trust: "auto",
+    kind: "blog",
+  },
 
   // -------------------------------------------------------------- trackers
   {

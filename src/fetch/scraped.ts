@@ -125,7 +125,32 @@ function parseLightclientBlog(html: string): ScrapedEntry[] {
   return entries;
 }
 
+function parseOptimismBlog(html: string): ScrapedEntry[] {
+  // Next.js CSS-module cards; the class hash changes per build, so match the module name only:
+  //   <a class="CardArticle-module__HASH__card ..." href="/blog/SLUG">
+  //     <p class="xxs CardArticle-module__HASH__date">Jan 14, 2026</p>
+  //     <p class="s CardArticle-module__HASH__title">Title</p>
+  const itemRegex =
+    /<a class="CardArticle-module__\w+__card[^"]*" href="(\/blog\/[^"]+)">[\s\S]*?CardArticle-module__\w+__date">([^<]+)<\/p><p class="[^"]*CardArticle-module__\w+__title">([^<]+)<\/p>/g;
+  const entries: ScrapedEntry[] = [];
+  const seen = new Set<string>();
+  let m: RegExpExecArray | null;
+  while ((m = itemRegex.exec(html)) !== null) {
+    const [, href, dateStr, title] = m;
+    if (seen.has(href)) continue;
+    seen.add(href);
+    entries.push({
+      href,
+      title: decodeEntities(title),
+      description: "",
+      published: new Date(`${dateStr} UTC`),
+    });
+  }
+  return entries;
+}
+
 export const PARSERS: Record<ScrapedSource["parser"], Parser> = {
+  optimism: parseOptimismBlog,
   consensus: parseConsensusBlog,
   pse: parsePseBlog,
   fe: parseFeBlog,
