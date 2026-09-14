@@ -82,6 +82,13 @@ td.muted,.muted{color:var(--muted)}
 .pending .hide{all:unset;cursor:pointer;font-size:.75rem;color:var(--muted);border:1px solid var(--edge);border-radius:.25rem;padding:.1rem .5rem;transition:background-color .3s}
 .pending .hide:hover{background:var(--hover);color:var(--fg)}
 
+/* newsletter draft */
+.draft h1 span{color:var(--muted);font-weight:400}
+.draft .since{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem .75rem;margin:0 0 1rem;font-size:.875rem}
+.draft .since input{font:inherit;color:inherit;background:transparent;border:1px solid var(--edge);border-radius:.25rem;padding:.25rem .5rem;margin-left:.25rem}
+.draft .pill{padding:.375rem .75rem}
+.draft pre{font-size:.75rem;line-height:1.5;margin:0;padding:.6rem .75rem;border:1px solid var(--rule);border-radius:.25rem;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+
 /* footer */
 footer{margin-top:3rem;font-size:.875rem}
 footer .row{display:flex;align-items:center;justify-content:space-between;gap:1rem}

@@ -58,7 +58,8 @@ export async function pendingPage(env: Env): Promise<Response> {
   const groups = new Map<string, ItemRow[]>();
   for (const i of items) (groups.get(i.source_id) ?? groups.set(i.source_id, []).get(i.source_id)!).push(i);
 
-  let body = `<h1>Pending <span>${items.length} to review</span></h1>`;
+  let body = `<h1>Pending <span>${items.length} to review</span></h1>
+<p class="hint"><a href="/draft">Newsletter draft</a>: published items since last week, grouped by section.</p>`;
   if (items.length === 0) body += `<p class="empty">Nothing waiting for review.</p>`;
 
   for (const [sourceId, list] of groups) {

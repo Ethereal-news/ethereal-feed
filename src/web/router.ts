@@ -3,6 +3,7 @@ import { isCategory } from "../config/categories";
 import { jsonFeed, rssFeed } from "./feeds";
 import { notFound } from "./layout";
 import { dayPage } from "./pages/day";
+import { draftMarkdownResponse, draftPage } from "./pages/draft";
 import { hidePendingItem, pendingPage } from "./pages/pending";
 import { riverPage } from "./pages/river";
 import { sourcesPage } from "./pages/sources";
@@ -25,6 +26,8 @@ export async function handleWeb(request: Request, env: Env): Promise<Response> {
   if (path === "/feed.json") return jsonFeed(env);
   if (path === "/sources") return sourcesPage(env);
   if (path === "/pending") return pendingPage(env);
+  if (path === "/draft") return draftPage(request, env);
+  if (path === "/draft.md") return draftMarkdownResponse(request, env);
 
   let m: RegExpMatchArray | null;
   if ((m = path.match(/^\/c\/([a-z0-9-]+)\/feed\.xml$/))) {
