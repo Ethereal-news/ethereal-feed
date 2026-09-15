@@ -13,7 +13,16 @@ import { parseDay } from "./day";
  * clipboard and /draft.md serves it raw. Unlisted; no-store.
  */
 
-const DEFAULT_DAYS = 7;
+/**
+ * Default "since": midnight UTC of the most recent Friday strictly before
+ * `now`. Issues go out on Fridays, so the draft covers everything since the
+ * last one; on a Friday that is the previous Friday, a full week back.
+ */
+export function lastFriday(now = new Date()): Date {
+  const back = (now.getUTCDay() - 5 + 7) % 7 || 7; // Fri=5
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - back));
+  return d;
+}
 
 /** Escape the bits of a title that would break a markdown link. */
 function mdText(s: string): string {
@@ -75,10 +84,10 @@ export function draftHtml(items: ItemRow[], issues: Map<string, string>): string
     .join("\n");
 }
 
-/** since=YYYY-MM-DD (UTC), default 7 days ago; null when malformed. */
+/** since=YYYY-MM-DD (UTC), default the last Friday; null when malformed. */
 function sinceFrom(request: Request): Date | null {
   const raw = new URL(request.url).searchParams.get("since");
-  if (!raw) return new Date(Date.now() - DEFAULT_DAYS * 86_400_000);
+  if (!raw) return lastFriday();
   return parseDay(raw);
 }
 
