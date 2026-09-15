@@ -442,6 +442,14 @@ export const SOURCES: Source[] = [
   },
 ];
 
+/**
+ * Items attached by hand on /pending carry this source_id. There is no
+ * config entry: nothing fetches it, and the river shows the link's host in
+ * place of a source name.
+ */
+export const MANUAL_SOURCE_ID = "manual";
+export const MANUAL_SOURCE_NAME = "Manual";
+
 /** Human homepage for a source: explicit `site`, else derived from where we fetch. */
 export function siteFor(s: Source): string {
   if (s.site) return s.site;

@@ -1,6 +1,6 @@
 import { CATEGORY_NAME, isCategory } from "../config/categories";
-import { SOURCE_BY_ID, siteFor } from "../config/sources";
-import { authorName, type ItemRow } from "../db/items";
+import { MANUAL_SOURCE_ID, SOURCE_BY_ID, siteFor } from "../config/sources";
+import { authorName, storyItems, type ItemRow, type Story } from "../db/items";
 import { escapeHtml as h } from "./escape";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -43,15 +43,25 @@ export function relativeTime(iso: string, now: Date): string {
   return age(iso, now).text;
 }
 
-/** Config name for the source, or the raw id when it has been removed from config. */
-export function sourceLabel(item: Pick<ItemRow, "source_id">): string {
+/** Host of a hand-attached item's link, without "www.". */
+function manualHost(url: string): string {
+  try {
+    return new URL(url).host.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+/** Config name for the source; the link's host for hand-attached items; the raw id when removed from config. */
+export function sourceLabel(item: Pick<ItemRow, "source_id" | "url">): string {
+  if (item.source_id === MANUAL_SOURCE_ID) return manualHost(item.url);
   return SOURCE_BY_ID[item.source_id]?.name ?? item.source_id;
 }
 
 /** Source line: name linking to the source's site, then " · kind" unless it is a blog. */
-export function sourceLine(item: Pick<ItemRow, "source_id">): string {
+export function sourceLine(item: Pick<ItemRow, "source_id" | "url">): string {
   const s = SOURCE_BY_ID[item.source_id];
-  if (!s) return h(item.source_id);
+  if (!s) return h(sourceLabel(item));
   const link = `<a href="${h(siteFor(s))}" target="_blank" rel="noopener">${h(s.name)}</a>`;
   return s.kind === "blog" ? link : `${link} · ${h(s.kind)}`;
 }
@@ -79,8 +89,7 @@ export function issueLabel(url: string): string {
  *   summary           (one clamped line, body colour at 80%, only if non-empty)
  *   category · author · age · "in weekly #33"   (muted, text-xs, tracked)
  */
-export function renderItem(item: ItemRow, now: Date, issues?: IssueMap): string {
-  const issue = issues?.get(item.key);
+export function renderItem(item: ItemRow, now: Date, issue?: string, extra = ""): string {
   const meta = [
     `<a href="/c/${h(item.category)}">${h(categoryName(item.category))}</a>`,
     authorName(item) ? h(authorName(item)!) : "",
@@ -91,22 +100,56 @@ export function renderItem(item: ItemRow, now: Date, issues?: IssueMap): string 
   return `<article class="item">
 <div class="s">${sourceLine(item)}</div>
 <div class="t"><a href="${h(item.url)}" rel="noopener">${h(item.title)}</a></div>${desc}
-<div class="m">${meta.join(" · ")}</div>
+<div class="m">${meta.join(" · ")}</div>${extra}
 </article>`;
 }
 
-/** Items in order, with a running date header each time the UTC day changes. */
-export function renderRiver(items: ItemRow[], now: Date, issues?: IssueMap): string {
-  if (items.length === 0) return `<p class="empty">Nothing here yet.</p>`;
+/** "Title (Source) · Title (Source)" for a story's secondary items. */
+function storyLinks(items: ItemRow[]): string {
+  return items
+    .map((i) => `<a href="${h(i.url)}" rel="noopener">${h(i.title)}</a> (${h(sourceLabel(i))})`)
+    .join(" · ");
+}
+
+/** The most recent issue that linked to any item of the story, shown on the primary. */
+export function storyIssue(story: Story, issues?: IssueMap): string | undefined {
+  if (!issues) return undefined;
+  for (const i of storyItems(story)) {
+    const url = issues.get(i.key);
+    if (url) return url;
+  }
+  return undefined;
+}
+
+/**
+ * A story: the primary exactly as an item renders, then muted "More:" and
+ * "Commentary:" lines listing the other items when there are any.
+ */
+export function renderStory(story: Story, now: Date, issues?: IssueMap): string {
+  const lines = [
+    story.more.length ? `\n<div class="more"><span class="lbl">More:</span> ${storyLinks(story.more)}</div>` : "",
+    story.commentary.length ? `\n<div class="more"><span class="lbl">Commentary:</span> ${storyLinks(story.commentary)}</div>` : "",
+  ].join("");
+  return renderItem(story.primary, now, storyIssue(story, issues), lines);
+}
+
+/** Stories in order, with a running date header each time the primary's UTC day changes. */
+export function renderRiver(stories: Story[], now: Date, issues?: IssueMap): string {
+  if (stories.length === 0) return `<p class="empty">Nothing here yet.</p>`;
   let out = "";
   let current = "";
-  for (const item of items) {
-    const key = dayKey(item.published_at);
+  for (const story of stories) {
+    const key = dayKey(story.primary.published_at);
     if (key !== current) {
       current = key;
       out += `<h2 class="day"><a href="/day/${h(key)}">${h(dayLabel(key, now))}</a></h2>\n`;
     }
-    out += renderItem(item, now, issues) + "\n";
+    out += renderStory(story, now, issues) + "\n";
   }
   return out;
+}
+
+/** Keys of every item in every story, for the newsletter lookup. */
+export function storyKeys(stories: Story[]): string[] {
+  return stories.flatMap((s) => storyItems(s).map((i) => i.key));
 }

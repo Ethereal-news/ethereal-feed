@@ -65,6 +65,145 @@ export async function listPublished(db: D1Database, opts: ListOpts = {}): Promis
   return res.results;
 }
 
+/** A story: the item to headline plus the rest, each group oldest first. */
+export interface Story {
+  id: number | null;
+  primary: ItemRow;
+  more: ItemRow[];
+  commentary: ItemRow[];
+}
+
+/** Every item of a story, primary first. */
+export function storyItems(s: Story): ItemRow[] {
+  return [s.primary, ...s.more, ...s.commentary];
+}
+
+/**
+ * Published stories, newest first by the primary item's published_at, with
+ * the same filters as listPublished applied to the primary. An item the
+ * cluster pass has not reached yet (story_id NULL) shows as its own story.
+ */
+export async function listStories(db: D1Database, opts: ListOpts = {}): Promise<Story[]> {
+  const where = ["status = 'published'", "(story_role = 'primary' OR story_id IS NULL)"];
+  const binds: unknown[] = [];
+  if (opts.category) {
+    where.push("category = ?");
+    binds.push(opts.category);
+  }
+  if (opts.from) {
+    where.push("published_at >= ?");
+    binds.push(opts.from);
+  }
+  if (opts.to) {
+    where.push("published_at < ?");
+    binds.push(opts.to);
+  }
+  let sql = `SELECT ${COLS} FROM items WHERE ${where.join(" AND ")} ORDER BY published_at DESC, id DESC`;
+  if (opts.limit) {
+    sql += " LIMIT ?";
+    binds.push(opts.limit);
+  }
+  const primaries = (await db.prepare(sql).bind(...binds).all<ItemRow>()).results;
+  const stories = primaries.map<Story>((p) => ({ id: p.story_id, primary: p, more: [], commentary: [] }));
+
+  const byStory = new Map(stories.filter((s) => s.id !== null).map((s) => [s.id!, s]));
+  const ids = [...byStory.keys()];
+  for (let i = 0; i < ids.length; i += 90) {
+    const chunk = ids.slice(i, i + 90);
+    const res = await db
+      .prepare(
+        `SELECT ${COLS} FROM items WHERE status = 'published' AND story_role != 'primary'
+         AND story_id IN (${chunk.map(() => "?").join(",")}) ORDER BY published_at ASC, id ASC`
+      )
+      .bind(...chunk)
+      .all<ItemRow>();
+    for (const row of res.results) {
+      const s = byStory.get(row.story_id!)!;
+      (row.story_role === "commentary" ? s.commentary : s.more).push(row);
+    }
+  }
+  return stories;
+}
+
+/** Stories with more than one published item, newest first by primary; for the split list. */
+export async function multiItemStories(db: D1Database, limit: number): Promise<Story[]> {
+  const res = await db
+    .prepare(
+      `SELECT ${COLS} FROM items WHERE status = 'published' AND story_id IN (
+         SELECT story_id FROM items WHERE status = 'published' AND story_id IS NOT NULL
+         GROUP BY story_id HAVING COUNT(*) > 1)
+       ORDER BY story_id, story_role != 'primary', published_at ASC, id ASC`
+    )
+    .all<ItemRow>();
+  const byStory = new Map<number, Story>();
+  for (const row of res.results) {
+    const id = row.story_id!;
+    if (row.story_role === "primary") {
+      byStory.set(id, { id, primary: row, more: [], commentary: [] });
+      continue;
+    }
+    const story = byStory.get(id);
+    if (story) (row.story_role === "commentary" ? story.commentary : story.more).push(row);
+  }
+  return [...byStory.values()]
+    .sort((a, b) => (a.primary.published_at < b.primary.published_at ? 1 : -1))
+    .slice(0, limit);
+}
+
+/** An item whose stored URL is `url` in any of the spellings we compare (www., trailing slash). */
+export async function findByUrl(db: D1Database, forms: string[]): Promise<ItemRow | null> {
+  const res = await db
+    .prepare(`SELECT ${COLS} FROM items WHERE url IN (${forms.map(() => "?").join(",")}) ORDER BY id LIMIT 1`)
+    .bind(...forms)
+    .all<ItemRow>();
+  return res.results[0] ?? null;
+}
+
+/** The newest stories, for the attach form: id and primary title. */
+export async function recentStories(db: D1Database, limit: number): Promise<Array<{ id: number; title: string }>> {
+  const res = await db
+    .prepare(
+      `SELECT s.id, i.title FROM stories s JOIN items i ON i.id = s.primary_item_id
+       WHERE i.status = 'published' ORDER BY i.published_at DESC, s.id DESC LIMIT ?`
+    )
+    .bind(limit)
+    .all<{ id: number; title: string }>();
+  return res.results;
+}
+
+/** Create a story with `itemId` as its only member; returns the story id. */
+export async function newStory(db: D1Database, itemId: number, now: string): Promise<number> {
+  const row = await db
+    .prepare("INSERT INTO stories (primary_item_id, created_at, updated_at) VALUES (?, ?, ?) RETURNING id")
+    .bind(itemId, now, now)
+    .first<{ id: number }>();
+  const id = row!.id;
+  await db.prepare("UPDATE items SET story_id = ?, story_role = 'primary' WHERE id = ?").bind(id, itemId).run();
+  return id;
+}
+
+/** Move an item into a story with a role, dropping its old story when nothing is left in it. */
+export async function joinStory(
+  db: D1Database,
+  itemId: number,
+  storyId: number,
+  role: "more" | "commentary",
+  now: string
+): Promise<void> {
+  const old = await db.prepare("SELECT story_id FROM items WHERE id = ?").bind(itemId).first<{ story_id: number | null }>();
+  const stmts = [
+    db.prepare("UPDATE items SET story_id = ?, story_role = ? WHERE id = ?").bind(storyId, role, itemId),
+    db.prepare("UPDATE stories SET updated_at = ? WHERE id = ?").bind(now, storyId),
+  ];
+  if (old?.story_id && old.story_id !== storyId) {
+    stmts.push(
+      db.prepare("DELETE FROM stories WHERE id = ? AND NOT EXISTS (SELECT 1 FROM items WHERE story_id = ? AND id != ?)")
+        .bind(old.story_id, old.story_id, itemId)
+    );
+  }
+  await db.batch(stmts);
+}
+
 /** Pending items (allowlist sources awaiting review), newest first. */
 export async function listPending(db: D1Database): Promise<ItemRow[]> {
   const res = await db

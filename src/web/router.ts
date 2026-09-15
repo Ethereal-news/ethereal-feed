@@ -4,7 +4,7 @@ import { jsonFeed, rssFeed } from "./feeds";
 import { notFound } from "./layout";
 import { dayPage } from "./pages/day";
 import { draftMarkdownResponse, draftPage } from "./pages/draft";
-import { hidePendingItem, pendingPage } from "./pages/pending";
+import { attachToStory, hidePendingItem, pendingPage, splitFromStory } from "./pages/pending";
 import { riverPage } from "./pages/river";
 import { sourcesPage } from "./pages/sources";
 import { weekPage, weekRedirect } from "./pages/week";
@@ -13,9 +13,11 @@ import { weekPage, weekRedirect } from "./pages/week";
 export async function handleWeb(request: Request, env: Env): Promise<Response> {
   const path = new URL(request.url).pathname;
 
-  // The only POST: the review queue's "Hide" form.
+  // POSTs are the review queue's forms: hide, attach a URL to a story, split one out.
   if (request.method === "POST") {
     if (path === "/pending/hide") return hidePendingItem(request, env);
+    if (path === "/pending/attach") return attachToStory(request, env);
+    if (path === "/pending/split") return splitFromStory(request, env);
     return new Response("Method not allowed", { status: 405, headers: { Allow: "GET, HEAD" } });
   }
   if (request.method !== "GET" && request.method !== "HEAD") {

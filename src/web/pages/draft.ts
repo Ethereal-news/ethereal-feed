@@ -1,9 +1,10 @@
 import type { Env } from "../../index";
 import { CATEGORIES } from "../../config/categories";
 import { SOURCE_BY_ID } from "../../config/sources";
-import { authorName, listPublished, newsletterAppearances, type ItemRow } from "../../db/items";
+import { authorName, listStories, newsletterAppearances, storyItems, type ItemRow, type Story } from "../../db/items";
 import { escapeHtml as h } from "../escape";
 import { htmlResponse } from "../layout";
+import { storyKeys } from "../render";
 import { parseDay } from "./day";
 
 /**
@@ -52,35 +53,55 @@ function lineFor(item: ItemRow, inIssue: boolean): Line {
   };
 }
 
-/** Items grouped under the newsletter sections, in section order; empty sections omitted. */
-function sections(items: ItemRow[], issues: Map<string, string>): Array<{ name: string; lines: Line[] }> {
-  const out: Array<{ name: string; lines: Line[] }> = [];
+/** A story's bullet: the primary, then its other items as sub-bullets. */
+interface Bullet {
+  line: Line;
+  sub: Line[];
+}
+
+/** Stories grouped under the newsletter sections (by the primary's category), in section order; empty sections omitted. */
+function sections(stories: Story[], issues: Map<string, string>): Array<{ name: string; bullets: Bullet[] }> {
+  const out: Array<{ name: string; bullets: Bullet[] }> = [];
   for (const c of CATEGORIES) {
-    const lines = items.filter((i) => i.category === c.slug).map((i) => lineFor(i, issues.has(i.key)));
-    if (lines.length) out.push({ name: c.name, lines });
+    const bullets = stories
+      .filter((s) => s.primary.category === c.slug)
+      .map((s) => ({
+        line: lineFor(s.primary, issues.has(s.primary.key)),
+        sub: storyItems(s).slice(1).map((i) => lineFor(i, issues.has(i.key))),
+      }));
+    if (bullets.length) out.push({ name: c.name, bullets });
   }
   return out;
 }
 
 function mdLine(l: Line): string {
   const title = `[${mdText(l.title)}](${l.url})`;
-  return `* ${l.author ? `${l.author}: ` : ""}${title}${l.kind ? ` (${l.kind})` : ""}${l.description ? `: ${l.description}` : ""}${l.inIssue ? " ← issue" : ""}`;
+  return `${l.author ? `${l.author}: ` : ""}${title}${l.kind ? ` (${l.kind})` : ""}${l.description ? `: ${l.description}` : ""}${l.inIssue ? " ← issue" : ""}`;
+}
+
+function mdBullet(b: Bullet): string {
+  return [`* ${mdLine(b.line)}`, ...b.sub.map((l) => `  * ${mdLine(l)}`)].join("\n");
 }
 
 /** The whole draft as markdown, the form an issue is written in. */
-export function draftMarkdown(items: ItemRow[], issues: Map<string, string>): string {
-  const parts = sections(items, issues).map((s) => `### ${s.name}\n\n${s.lines.map(mdLine).join("\n")}`);
+export function draftMarkdown(stories: Story[], issues: Map<string, string>): string {
+  const parts = sections(stories, issues).map((s) => `### ${s.name}\n\n${s.bullets.map(mdBullet).join("\n")}`);
   return parts.join("\n\n") + (parts.length ? "\n" : "");
 }
 
 function htmlLine(l: Line): string {
-  return `<li>${l.author ? `${h(l.author)}: ` : ""}<a href="${h(l.url)}">${h(l.title)}</a>${l.kind ? ` (${h(l.kind)})` : ""}${l.description ? `: ${h(l.description)}` : ""}${l.inIssue ? ` <span class="issue">← issue</span>` : ""}</li>`;
+  return `${l.author ? `${h(l.author)}: ` : ""}<a href="${h(l.url)}">${h(l.title)}</a>${l.kind ? ` (${h(l.kind)})` : ""}${l.description ? `: ${h(l.description)}` : ""}${l.inIssue ? ` <span class="issue">← issue</span>` : ""}`;
+}
+
+function htmlBullet(b: Bullet): string {
+  const sub = b.sub.length ? `\n<ul>\n${b.sub.map((l) => `<li>${htmlLine(l)}</li>`).join("\n")}\n</ul>` : "";
+  return `<li>${htmlLine(b.line)}${sub}</li>`;
 }
 
 /** The same draft rendered as it would read in an issue. */
-export function draftHtml(items: ItemRow[], issues: Map<string, string>): string {
-  return sections(items, issues)
-    .map((s) => `<h3>${h(s.name)}</h3>\n<ul>\n${s.lines.map(htmlLine).join("\n")}\n</ul>`)
+export function draftHtml(stories: Story[], issues: Map<string, string>): string {
+  return sections(stories, issues)
+    .map((s) => `<h3>${h(s.name)}</h3>\n<ul>\n${s.bullets.map(htmlBullet).join("\n")}\n</ul>`)
     .join("\n");
 }
 
@@ -92,9 +113,9 @@ function sinceFrom(request: Request): Date | null {
 }
 
 async function build(env: Env, since: Date): Promise<{ md: string; html: string; count: number }> {
-  const items = await listPublished(env.DB, { from: since.toISOString() });
-  const issues = await newsletterAppearances(env.DB, items.map((i) => i.key));
-  return { md: draftMarkdown(items, issues), html: draftHtml(items, issues), count: items.length };
+  const stories = await listStories(env.DB, { from: since.toISOString() });
+  const issues = await newsletterAppearances(env.DB, storyKeys(stories));
+  return { md: draftMarkdown(stories, issues), html: draftHtml(stories, issues), count: stories.length };
 }
 
 const COPY_JS = `(function(){var b=document.getElementById("copy"),p=document.getElementById("draft");if(!b||!p)return;b.addEventListener("click",function(){navigator.clipboard.writeText(p.textContent||"").then(function(){b.textContent="Copied";setTimeout(function(){b.textContent="Copy"},1500)})})})();`;
@@ -106,7 +127,7 @@ export async function draftPage(request: Request, env: Env): Promise<Response> {
   const { md, html, count } = await build(env, since);
 
   const body = `<div class="draft">
-<h1>Draft <span>${count} items since ${h(key)}</span></h1>
+<h1>Draft <span>${count} stories since ${h(key)}</span></h1>
 <form class="since" method="get" action="/draft">
 <label>Since <input type="date" name="since" value="${h(key)}" max="${h(new Date().toISOString().slice(0, 10))}"></label>
 <button class="pill" type="submit">Update</button>

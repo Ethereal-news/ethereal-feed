@@ -1,6 +1,6 @@
 import type { Env } from "../../index";
 import { CATEGORY_NAME } from "../../config/categories";
-import { SOURCES, siteFor, type Kind } from "../../config/sources";
+import { MANUAL_SOURCE_ID, MANUAL_SOURCE_NAME, SOURCES, siteFor, type Kind } from "../../config/sources";
 import { sourceStats } from "../../db/items";
 import { escapeHtml as h } from "../escape";
 import { htmlResponse } from "../layout";
@@ -56,8 +56,22 @@ ${timeCell(stats.lastOk.get(s.id), now)}
 </tr>`);
   }
 
+  // Items attached by hand on /pending: nothing fetches them, so no run columns.
+  const manual = stats.counts.get(MANUAL_SOURCE_ID);
+  if (manual) {
+    rows.push(`<tr>
+<td>${h(MANUAL_SOURCE_NAME)}</td>
+<td class="muted">attached by hand</td>
+<td class="muted">—</td>
+<td class="n">${manual.total}</td><td class="n">${manual.last30}</td>
+<td class="n">${stats.newsletter.get(MANUAL_SOURCE_ID) ?? 0}</td>
+<td class="muted">—</td>
+<td class="muted">—</td>
+</tr>`);
+  }
+
   // Ids that have rows but are no longer in config: history is kept, nothing fetches them.
-  const configured = new Set(SOURCES.map((s) => s.id));
+  const configured = new Set([...SOURCES.map((s) => s.id), MANUAL_SOURCE_ID]);
   const orphaned = [...new Set([...stats.counts.keys(), ...stats.latest.keys()])]
     .filter((id) => !configured.has(id))
     .sort();

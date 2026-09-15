@@ -1,8 +1,8 @@
 import type { Env } from "../../index";
-import { listPublished, newsletterAppearances } from "../../db/items";
+import { listStories, newsletterAppearances } from "../../db/items";
 import { escapeHtml as h } from "../escape";
 import { describe, htmlResponse, notFound } from "../layout";
-import { longDate, renderRiver } from "../render";
+import { longDate, renderRiver, storyKeys } from "../render";
 import { parseDay, shift } from "./day";
 
 /** YYYY-MM-DD of the Saturday on or before `date` (UTC); the newsletter week runs Sat–Fri. */
@@ -19,7 +19,7 @@ export function weekRedirect(): Response {
   });
 }
 
-/** "/week/:saturday": Sat–Fri published items with day headers, and prev/next week links. */
+/** "/week/:saturday": Sat–Fri stories with day headers, and prev/next week links. */
 export async function weekPage(env: Env, dateStr: string): Promise<Response> {
   const day = parseDay(dateStr);
   if (!day) return notFound(env, "week");
@@ -33,8 +33,8 @@ export async function weekPage(env: Env, dateStr: string): Promise<Response> {
   const start = new Date(`${saturday}T00:00:00.000Z`);
   const next = shift(start, 7);
   const prev = shift(start, -7);
-  const items = await listPublished(env.DB, { from: start.toISOString(), to: `${next}T00:00:00.000Z` });
-  const issues = await newsletterAppearances(env.DB, items.map((i) => i.key));
+  const stories = await listStories(env.DB, { from: start.toISOString(), to: `${next}T00:00:00.000Z` });
+  const issues = await newsletterAppearances(env.DB, storyKeys(stories));
 
   const showNext = next <= now.toISOString().slice(0, 10);
   const pager = `<nav class="pager" aria-label="Weeks">
@@ -47,6 +47,6 @@ ${showNext ? `<a href="/week/${next}" rel="next">Week of ${h(longDate(next))} �
     title: `Ethereum news for ${label}`,
     description: describe(`Ethereum news for the ${label}`),
     path: `/week/${saturday}`,
-    body: `<h1>Week of ${h(longDate(saturday))} <span>Sat–Fri, UTC</span></h1>\n${renderRiver(items, now, issues)}\n${pager}`,
+    body: `<h1>Week of ${h(longDate(saturday))} <span>Sat–Fri, UTC</span></h1>\n${renderRiver(stories, now, issues)}\n${pager}`,
   });
 }

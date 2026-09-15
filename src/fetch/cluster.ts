@@ -1,5 +1,6 @@
 import type { Env } from "../index";
 import { SOURCE_BY_ID } from "../config/sources";
+import { newStory } from "../db/items";
 import { linkForm } from "./newsletter";
 
 /**
@@ -26,8 +27,8 @@ import { linkForm } from "./newsletter";
  * post (not a bug post) > release > forum topic > other, ties to the
  * earliest published. Forum topics that are not primary are "commentary".
  *
- * A story's id is the id of the item that founded it, so stories can be
- * created inside one batch without reading ids back.
+ * New stories are inserted one at a time (RETURNING id) so that items later
+ * in the same run can join them; the role updates go in one batch at the end.
  */
 
 /** Rules 1 and 2 only consider items published within this many days of each other. */
@@ -233,11 +234,8 @@ export async function clusterNew(env: Env, now = new Date().toISOString()): Prom
     const match = candidates.sort(newestFirst)[0];
 
     if (!match) {
-      stmts.push(
-        db.prepare("INSERT INTO stories (id, primary_item_id, created_at, updated_at) VALUES (?1, ?1, ?2, ?2)").bind(item.id, now),
-        db.prepare("UPDATE items SET story_id = ?1, story_role = 'primary' WHERE id = ?1").bind(item.id)
-      );
-      addToPool({ ...item, story_id: item.id, story_role: "primary" });
+      const storyId = await newStory(db, item.id, now);
+      addToPool({ ...item, story_id: storyId, story_role: "primary" });
       continue;
     }
 

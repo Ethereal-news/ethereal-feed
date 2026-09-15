@@ -58,6 +58,9 @@ h2.day:first-child{margin-top:.25rem}
 .item .t{font-weight:500;line-height:1.35}
 .item .d{font-size:1rem;color:var(--fg);opacity:.8;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .item .m{font-size:.75rem;color:var(--muted);letter-spacing:.02em;line-height:1.6;margin-top:.1rem}
+.item .more{font-size:.75rem;color:var(--muted);line-height:1.6}
+.item .more .lbl{letter-spacing:.02em}
+.item .more a:hover{color:var(--fg)}
 .empty{color:var(--muted)}
 .pager{display:flex;justify-content:space-between;gap:1rem;font-size:.8125rem;color:var(--muted);margin:1.5rem 0 0}
 
@@ -81,6 +84,14 @@ td.muted,.muted{color:var(--muted)}
 .pending form{display:inline}
 .pending .hide{all:unset;cursor:pointer;font-size:.75rem;color:var(--muted);border:1px solid var(--edge);border-radius:.25rem;padding:.1rem .5rem;transition:background-color .3s}
 .pending .hide:hover{background:var(--hover);color:var(--fg)}
+.pending .attach{display:flex;flex-wrap:wrap;align-items:end;gap:.5rem .75rem;font-size:.8125rem}
+.pending .attach label{display:flex;flex-direction:column;gap:.2rem;color:var(--muted)}
+.pending .attach input,.pending .attach select{font:inherit;color:var(--fg);background:transparent;border:1px solid var(--edge);border-radius:.25rem;padding:.3rem .5rem;min-width:12rem;max-width:100%}
+.pending .attach input{min-width:min(22rem,100%)}
+.pending .attach .pill{padding:.375rem .75rem}
+.pending .stories{margin:0;padding-left:1.25rem;font-size:.8125rem;line-height:1.5}
+.pending .stories ul{margin:.15rem 0 .6rem;padding-left:1.25rem}
+.pending .stories li{margin:0 0 .25rem}
 
 /* newsletter draft */
 .draft h1 span{color:var(--muted);font-weight:400}
@@ -91,6 +102,7 @@ td.muted,.muted{color:var(--muted)}
 .draft .preview h3:first-child{margin-top:.5rem}
 .draft .preview ul{margin:0;padding-left:1.25rem}
 .draft .preview li{margin:0 0 .375rem}
+.draft .preview li li{margin:.2rem 0 0;font-size:.9375rem}
 .draft .preview a{text-decoration:underline;text-decoration-color:var(--underline);text-underline-offset:.15em}
 .draft .preview a:hover{text-decoration-color:currentColor}
 .draft .issue{color:var(--muted);font-size:.875rem;white-space:nowrap}

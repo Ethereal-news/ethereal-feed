@@ -1,8 +1,8 @@
 import type { Env } from "../../index";
-import { listPublished, newsletterAppearances } from "../../db/items";
+import { listStories, newsletterAppearances } from "../../db/items";
 import { escapeHtml as h } from "../escape";
 import { describe, htmlResponse, notFound } from "../layout";
-import { longDate, renderItem } from "../render";
+import { longDate, renderStory, storyKeys } from "../render";
 
 /** Parse YYYY-MM-DD strictly; rejects impossible dates like 2026-02-30. */
 export function parseDay(s: string): Date | null {
@@ -19,7 +19,7 @@ export function shift(date: Date, days: number): string {
   return new Date(date.getTime() + days * 86_400_000).toISOString().slice(0, 10);
 }
 
-/** "/day/:date": everything published on one UTC day, with prev/next links. */
+/** "/day/:date": stories whose primary was published on one UTC day, with prev/next links. */
 export async function dayPage(env: Env, dateStr: string): Promise<Response> {
   const day = parseDay(dateStr);
   if (!day) return notFound(env, "day");
@@ -28,11 +28,11 @@ export async function dayPage(env: Env, dateStr: string): Promise<Response> {
   const key = day.toISOString().slice(0, 10);
   const next = shift(day, 1);
   const prev = shift(day, -1);
-  const items = await listPublished(env.DB, { from: day.toISOString(), to: `${next}T00:00:00.000Z` });
-  const issues = await newsletterAppearances(env.DB, items.map((i) => i.key));
+  const stories = await listStories(env.DB, { from: day.toISOString(), to: `${next}T00:00:00.000Z` });
+  const issues = await newsletterAppearances(env.DB, storyKeys(stories));
 
-  const list = items.length
-    ? items.map((i) => renderItem(i, now, issues)).join("\n")
+  const list = stories.length
+    ? stories.map((s) => renderStory(s, now, issues)).join("\n")
     : `<p class="empty">Nothing published on this day.</p>`;
 
   const showNext = next <= now.toISOString().slice(0, 10);

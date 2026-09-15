@@ -26,5 +26,4 @@ CREATE INDEX ol_url ON outbound_links (url);
 
 -- No backfill here: the first cron run after this migration clusters every
 -- published item that has no story (fetch/cluster.ts), so items that were
--- already in the table can still collapse into shared stories. A story's id
--- is the id of the item that founded it.
+-- already in the table can still collapse into shared stories.

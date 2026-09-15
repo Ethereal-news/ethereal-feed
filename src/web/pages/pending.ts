@@ -1,15 +1,28 @@
 import type { Env } from "../../index";
-import { SOURCE_BY_ID, siteFor, type DiscourseSource } from "../../config/sources";
-import { authorTopicCounts, hidePending, listPending, type ItemRow } from "../../db/items";
+import { MANUAL_SOURCE_ID, SOURCE_BY_ID, siteFor, type DiscourseSource } from "../../config/sources";
+import {
+  authorTopicCounts, findByUrl, hidePending, joinStory, listPending, multiItemStories, newStory, recentStories,
+  type ItemRow, type Story,
+} from "../../db/items";
+import { decodeEntities } from "../../fetch/html";
+import { fetchText } from "../../fetch/http";
+import { linkForm, matchForm } from "../../fetch/newsletter";
 import { escapeHtml as h } from "../escape";
 import { htmlResponse } from "../layout";
-import { age } from "../render";
+import { age, sourceLabel } from "../render";
 
 /**
- * "/pending": the review queue for allowlist sources. Unlisted; no-store.
+ * "/pending": the review queue for allowlist sources, plus the story tools
+ * (attach a URL to a story; split an item out of one). Unlisted; no-store.
  * Approving an author is copy the snippet -> sources.ts -> push; the next
  * fetch run publishes their pending topics retroactively (see run.ts).
  */
+
+/** Stories offered in the attach form's select. */
+const ATTACH_CHOICES = 30;
+/** Multi-item stories listed with split buttons. */
+const SPLIT_LIST = 30;
+
 
 /** Ready-to-paste trustedAuthors literal: current names, then the pending page's new ones marked. */
 function snippet(source: DiscourseSource | undefined, pendingAuthors: string[]): string {
@@ -80,6 +93,8 @@ ${list.map((i) => row(i, now, counts.get(`${i.source_id}\n${i.author}`) ?? 0)).j
 </section>`;
   }
 
+  body += await storyTools(env);
+
   return htmlResponse(env, {
     title: "Pending",
     description: "Review queue for allowlist sources.",
@@ -87,6 +102,122 @@ ${list.map((i) => row(i, now, counts.get(`${i.source_id}\n${i.author}`) ?? 0)).j
     private: true,
     body: `<div class="pending">${body}</div>`,
   });
+}
+
+/** The attach form and the list of multi-item stories with split buttons. */
+async function storyTools(env: Env): Promise<string> {
+  const choices = await recentStories(env.DB, ATTACH_CHOICES);
+  const stories = await multiItemStories(env.DB, SPLIT_LIST);
+
+  const options = choices.map((c) => `<option value="${c.id}">${h(c.title)}</option>`).join("\n");
+  const form = `<section>
+<h2>Attach URL to story</h2>
+<p class="hint">Adds the link as a "more" or "commentary" item of the chosen story. A link already in the feed is moved rather than duplicated; anything else becomes a hand-added item titled from the page.</p>
+<form class="attach" method="post" action="/pending/attach">
+<label>URL <input type="url" name="url" required placeholder="https://"></label>
+<label>Story <select name="story" required>${options}</select></label>
+<label>Role <select name="role"><option value="more">more</option><option value="commentary">commentary</option></select></label>
+<button class="pill" type="submit">Attach</button>
+</form>
+</section>`;
+
+  const splitRow = (i: ItemRow) => `<li><a href="${h(i.url)}" rel="noopener">${h(i.title)}</a> <span class="muted">(${h(sourceLabel(i))}, ${h(i.story_role)})</span>
+<form method="post" action="/pending/split"><input type="hidden" name="id" value="${i.id}"><button class="hide" type="submit" title="Move this item into its own story">Split</button></form></li>`;
+  const storyBlock = (s: Story) => `<li><a href="${h(s.primary.url)}" rel="noopener">${h(s.primary.title)}</a> <span class="muted">(${h(sourceLabel(s.primary))})</span>
+<ul>
+${[...s.more, ...s.commentary].map(splitRow).join("\n")}
+</ul></li>`;
+  const list = `<section>
+<h2>Stories <span>${stories.length} with more than one item</span></h2>
+<p class="hint">Split moves an item into its own story, for when clustering got it wrong.</p>
+${stories.length ? `<ul class="stories">\n${stories.map(storyBlock).join("\n")}\n</ul>` : `<p class="empty">No multi-item stories yet.</p>`}
+</section>`;
+
+  return form + list;
+}
+
+function back(): Response {
+  return new Response(null, { status: 303, headers: { Location: "/pending", "Cache-Control": "no-store" } });
+}
+
+/** The page's <title>, or the URL itself when the page cannot be fetched or has none. */
+async function fetchTitle(url: string): Promise<string> {
+  try {
+    const html = await fetchText(url, { Accept: "text/html" });
+    const raw = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "";
+    const title = decodeEntities(raw.replace(/<[^>]*>/g, "")).replace(/\s+/g, " ").trim();
+    return title || url;
+  } catch {
+    return url;
+  }
+}
+
+/** Spellings a stored URL might have for this link: with and without "www." and a trailing slash. */
+function urlForms(url: string): string[] {
+  const n = matchForm(url);
+  const www = n.replace(/^(https?:\/\/)/, "$1www.");
+  return [n, `${n}/`, www, `${www}/`];
+}
+
+/**
+ * POST /pending/attach with url, story, role: put the link in the story. An
+ * existing item with that URL is moved (its primary cannot be taken from a
+ * story that still has other items); otherwise a "manual" item is created
+ * with the page's title and the primary's category.
+ */
+export async function attachToStory(request: Request, env: Env): Promise<Response> {
+  const form = await request.formData().catch(() => null);
+  const url = String(form?.get("url") ?? "").trim();
+  const storyId = Number(form?.get("story"));
+  const role = String(form?.get("role") ?? "");
+  if (!/^https?:\/\//.test(url) || !linkForm(url)) return new Response("Bad URL", { status: 400 });
+  if (!Number.isInteger(storyId) || storyId <= 0) return new Response("Bad story", { status: 400 });
+  if (role !== "more" && role !== "commentary") return new Response("Bad role", { status: 400 });
+
+  const story = await env.DB.prepare(
+    "SELECT s.id, i.category FROM stories s JOIN items i ON i.id = s.primary_item_id WHERE s.id = ?"
+  ).bind(storyId).first<{ id: number; category: string }>();
+  if (!story) return new Response("No such story", { status: 404 });
+
+  const now = new Date().toISOString();
+  const existing = await findByUrl(env.DB, urlForms(url));
+  if (existing) {
+    if (existing.story_role === "primary" && existing.story_id !== null) {
+      const others = await env.DB.prepare("SELECT COUNT(*) AS n FROM items WHERE story_id = ? AND id != ?")
+        .bind(existing.story_id, existing.id).first<{ n: number }>();
+      if ((others?.n ?? 0) > 0) {
+        return new Response("That link is the primary of a story that still has other items; split those out first.", { status: 409 });
+      }
+    }
+    await joinStory(env.DB, existing.id, story.id, role, now);
+    if (existing.status !== "published") {
+      await env.DB.prepare("UPDATE items SET status = 'published' WHERE id = ?").bind(existing.id).run();
+    }
+    return back();
+  }
+
+  const title = await fetchTitle(url);
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO items (key, url, title, description, source_id, source_type, category, published_at, fetched_at, status, story_id, story_role)
+       VALUES (?, ?, ?, '', ?, ?, ?, ?, ?, 'published', ?, ?)
+       ON CONFLICT(key) DO UPDATE SET story_id = excluded.story_id, story_role = excluded.story_role, status = 'published'`
+    ).bind(`manual:${linkForm(url)}`, url, title, MANUAL_SOURCE_ID, MANUAL_SOURCE_ID, story.category, now, now, story.id, role),
+    env.DB.prepare("UPDATE stories SET updated_at = ? WHERE id = ?").bind(now, story.id),
+  ]);
+  return back();
+}
+
+/** POST /pending/split with id: move a non-primary item into a story of its own. */
+export async function splitFromStory(request: Request, env: Env): Promise<Response> {
+  const form = await request.formData().catch(() => null);
+  const id = Number(form?.get("id"));
+  if (!Number.isInteger(id) || id <= 0) return new Response("Bad request", { status: 400 });
+  const item = await env.DB.prepare("SELECT story_role FROM items WHERE id = ?").bind(id).first<{ story_role: string }>();
+  if (!item) return new Response("No such item", { status: 404 });
+  if (item.story_role === "primary") return new Response("That item is already its story's primary.", { status: 409 });
+  await newStory(env.DB, id, new Date().toISOString());
+  return back();
 }
 
 /** POST /pending/hide with form field id: mark a pending item hidden, then back to the queue. */
