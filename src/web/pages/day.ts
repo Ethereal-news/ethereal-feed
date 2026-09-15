@@ -14,7 +14,8 @@ export function parseDay(s: string): Date | null {
   return date;
 }
 
-function shift(date: Date, days: number): string {
+/** YYYY-MM-DD of `date` moved by `days`. */
+export function shift(date: Date, days: number): string {
   return new Date(date.getTime() + days * 86_400_000).toISOString().slice(0, 10);
 }
 

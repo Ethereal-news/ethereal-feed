@@ -116,6 +116,7 @@ ${o.private ? '<meta name="robots" content="noindex, nofollow">\n' : ""}<script>
 </div>
 <nav class="cats" aria-label="Categories">
 ${cats}
+<a class="week" href="/week">This week</a>
 </nav>
 </header>
 <main>

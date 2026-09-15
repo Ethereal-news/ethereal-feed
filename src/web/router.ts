@@ -7,6 +7,7 @@ import { draftMarkdownResponse, draftPage } from "./pages/draft";
 import { hidePendingItem, pendingPage } from "./pages/pending";
 import { riverPage } from "./pages/river";
 import { sourcesPage } from "./pages/sources";
+import { weekPage, weekRedirect } from "./pages/week";
 
 /** Public routes (PLAN §6). /health is handled in index.ts. */
 export async function handleWeb(request: Request, env: Env): Promise<Response> {
@@ -38,6 +39,10 @@ export async function handleWeb(request: Request, env: Env): Promise<Response> {
   }
   if ((m = path.match(/^\/day\/([0-9-]+)\/?$/))) {
     return dayPage(env, m[1]);
+  }
+  if (path === "/week" || path === "/week/") return weekRedirect();
+  if ((m = path.match(/^\/week\/([0-9-]+)\/?$/))) {
+    return weekPage(env, m[1]);
   }
   return notFound(env);
 }
