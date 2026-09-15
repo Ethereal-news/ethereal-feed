@@ -110,13 +110,13 @@ ${o.private ? '<meta name="robots" content="noindex, nofollow">\n' : ""}<script>
 <a class="feed" href="/">feed</a>
 </div>
 <nav class="top" aria-label="Site">
+<a class="nav-link" href="/week">this week</a>
 <a class="nav-link" href="/sources">sources</a>
 <button id="theme" type="button" aria-label="Theme: system" title="Theme: system">${MONITOR}${SUN}${MOON}</button>
 </nav>
 </div>
 <nav class="cats" aria-label="Categories">
 ${cats}
-<a class="week" href="/week">This week</a>
 </nav>
 </header>
 <main>

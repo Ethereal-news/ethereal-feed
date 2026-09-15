@@ -41,11 +41,10 @@ nav.top{display:flex;align-items:center;gap:1.5rem;font-size:.875rem;text-transf
 :root[data-theme=light] #theme .sun{display:block}
 :root[data-theme=dark] #theme .moon{display:block}
 :root[data-theme=light] #theme .system,:root[data-theme=dark] #theme .system{display:none}
-nav.cats{display:flex;flex-wrap:wrap;gap:.15rem 1rem;margin-top:.5rem;font-size:.75rem;color:var(--nav)}
+nav.cats{display:flex;flex-wrap:wrap;gap:.15rem .75rem;margin-top:.5rem;font-size:.6875rem;color:var(--nav)}
 nav.cats a{transition:color .3s}
 nav.cats a:hover,nav.cats a[aria-current]{color:var(--fg)}
 nav.cats a[aria-current]{font-weight:600}
-nav.cats a.week{margin-left:auto}
 
 /* river */
 main h1{font-size:1.0625rem;font-weight:600;margin:0 0 1rem}
