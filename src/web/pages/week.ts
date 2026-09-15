@@ -5,9 +5,9 @@ import { describe, htmlResponse, notFound } from "../layout";
 import { longDate, renderRiver } from "../render";
 import { parseDay, shift } from "./day";
 
-/** YYYY-MM-DD of the Monday on or before `date` (UTC). */
-export function mondayOf(date: Date): string {
-  const back = (date.getUTCDay() + 6) % 7; // Mon=0 ... Sun=6
+/** YYYY-MM-DD of the Saturday on or before `date` (UTC); the newsletter week runs Sat–Fri. */
+export function weekStart(date: Date): string {
+  const back = (date.getUTCDay() + 1) % 7; // Sat=0 ... Fri=6
   return shift(date, -back);
 }
 
@@ -15,22 +15,22 @@ export function mondayOf(date: Date): string {
 export function weekRedirect(): Response {
   return new Response(null, {
     status: 302,
-    headers: { Location: `/week/${mondayOf(new Date())}`, "Cache-Control": "no-store" },
+    headers: { Location: `/week/${weekStart(new Date())}`, "Cache-Control": "no-store" },
   });
 }
 
-/** "/week/:monday": Mon–Sun published items with day headers, and prev/next week links. */
+/** "/week/:saturday": Sat–Fri published items with day headers, and prev/next week links. */
 export async function weekPage(env: Env, dateStr: string): Promise<Response> {
   const day = parseDay(dateStr);
   if (!day) return notFound(env, "week");
 
-  const monday = mondayOf(day);
-  if (monday !== dateStr) {
-    return new Response(null, { status: 301, headers: { Location: `/week/${monday}` } });
+  const saturday = weekStart(day);
+  if (saturday !== dateStr) {
+    return new Response(null, { status: 301, headers: { Location: `/week/${saturday}` } });
   }
 
   const now = new Date();
-  const start = new Date(`${monday}T00:00:00.000Z`);
+  const start = new Date(`${saturday}T00:00:00.000Z`);
   const next = shift(start, 7);
   const prev = shift(start, -7);
   const items = await listPublished(env.DB, { from: start.toISOString(), to: `${next}T00:00:00.000Z` });
@@ -42,11 +42,11 @@ export async function weekPage(env: Env, dateStr: string): Promise<Response> {
 ${showNext ? `<a href="/week/${next}" rel="next">Week of ${h(longDate(next))} →</a>` : ""}
 </nav>`;
 
-  const label = `week of ${longDate(monday)}`;
+  const label = `week of ${longDate(saturday)}`;
   return htmlResponse(env, {
     title: `Ethereum news for ${label}`,
     description: describe(`Ethereum news for the ${label}`),
-    path: `/week/${monday}`,
-    body: `<h1>Week of ${h(longDate(monday))} <span>Mon–Sun, UTC</span></h1>\n${renderRiver(items, now, issues)}\n${pager}`,
+    path: `/week/${saturday}`,
+    body: `<h1>Week of ${h(longDate(saturday))} <span>Sat–Fri, UTC</span></h1>\n${renderRiver(items, now, issues)}\n${pager}`,
   });
 }
