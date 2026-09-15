@@ -2,7 +2,7 @@ import type { Env } from "../index";
 import type { MarkdownSource } from "../config/sources";
 import { MAX_AGE_DAYS, type RawItem } from "./run";
 import { fetchJson, fetchText, githubHeaders } from "./http";
-import { normalizeUrl, truncate } from "./html";
+import { extractLinks, normalizeUrl, truncate } from "./html";
 
 /** Blogs whose posts live as markdown files in a GitHub repo, named YYYYMMDD-slug.md. */
 
@@ -43,6 +43,7 @@ async function fetchPost(source: MarkdownSource, entry: ContentEntry, fallback: 
     url,
     title: frontMatterField(frontMatter, "title") || slug,
     description: truncate(frontMatterField(frontMatter, "excerpt")),
+    links: extractLinks(markdown.slice(frontMatter.length)),
     published_at: published.toISOString(),
   };
 }

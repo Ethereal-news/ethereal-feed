@@ -2,7 +2,7 @@ import { XMLParser } from "fast-xml-parser";
 import type { RssSource } from "../config/sources";
 import type { RawItem } from "./run";
 import { fetchText } from "./http";
-import { normalizeUrl, parseDate, stripHtml, truncate } from "./html";
+import { extractLinks, normalizeUrl, parseDate, stripHtml, truncate } from "./html";
 
 type Node = Record<string, unknown>;
 
@@ -34,6 +34,8 @@ export interface FeedEntry {
   url: string;
   guid: string;
   description: string;
+  /** Full body where the feed carries one (content:encoded, Atom content); else the summary. */
+  body: string;
   author: string;
   published: Date | null;
 }
@@ -44,6 +46,7 @@ function parseRss2(channel: Node): FeedEntry[] {
     url: text(item.link),
     guid: text(item.guid),
     description: text(item.description) || text(item["content:encoded"]),
+    body: text(item["content:encoded"]) || text(item.description),
     author: text(item["dc:creator"]) || text(item.author),
     published: parseDate(text(item.pubDate) || text(item["dc:date"])),
   }));
@@ -65,6 +68,7 @@ function parseAtom(feed: Node): FeedEntry[] {
       url: atomLink(entry.link),
       guid: text(entry.id),
       description: text(entry.content) || text(entry.summary),
+      body: text(entry.content) || text(entry.summary),
       author: text(asArray(author)[0]?.name),
       published: parseDate(text(entry.published) || text(entry.updated)),
     };
@@ -109,6 +113,7 @@ export async function fetchRss(source: RssSource): Promise<RawItem[]> {
       title,
       description: cleanDescription(e.description),
       author: e.author || undefined,
+      links: extractLinks(e.body),
       published_at: e.published.toISOString(),
     });
   }

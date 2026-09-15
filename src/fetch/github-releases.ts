@@ -2,7 +2,7 @@ import type { Env } from "../index";
 import type { ReleaseSource } from "../config/sources";
 import type { RawItem } from "./run";
 import { fetchJson, githubHeaders } from "./http";
-import { truncate } from "./html";
+import { extractLinks, truncate } from "./html";
 
 interface GitHubRelease {
   tag_name: string;
@@ -93,6 +93,7 @@ export async function fetchReleases(source: ReleaseSource, env: Env): Promise<Ra
       description: releaseDescription(r.body),
       version: extractVersion(r.tag_name),
       prerelease: isPrerelease(r),
+      links: extractLinks(r.body ?? ""),
       published_at: new Date(r.published_at).toISOString(),
     });
   }

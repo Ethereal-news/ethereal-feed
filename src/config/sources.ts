@@ -39,6 +39,12 @@ interface Base {
   kind: Kind;
   /** Human homepage. Defaults per type; see siteFor(). */
   site?: string;
+  /**
+   * Sources that belong to one project (a blog and the repo it announces
+   * releases for). Items from the same group cluster into a story when they
+   * share a version or package token; see fetch/cluster.ts.
+   */
+  group?: string;
 }
 
 export interface RssSource extends Base {
@@ -121,13 +127,13 @@ export const SOURCES: Source[] = [
     kind: "blog",
   },
   {
-    id: "nomic-foundation-blog", name: "Nomic Foundation blog", type: "rss",
+    id: "nomic-foundation-blog", group: "hardhat", name: "Nomic Foundation blog", type: "rss",
     url: "https://blog.nomic.foundation/rss/",
     category: "developers", trust: "auto",
     kind: "blog",
   },
   {
-    id: "ethstaker-blog", name: "EthStaker blog", type: "rss",
+    id: "ethstaker-blog", group: "ethstaker", name: "EthStaker blog", type: "rss",
     url: "https://api.paragraph.com/blogs/rss/@ethstaker",
     site: "https://paragraph.com/@ethstaker",
     category: "staking", trust: "auto",
@@ -147,7 +153,7 @@ export const SOURCES: Source[] = [
     rewriteUrl: (u) => u.replace("https://vitalik.ca/", "https://vitalik.eth.limo/"),
   },
   {
-    id: "solidity-blog", name: "Solidity blog", type: "rss",
+    id: "solidity-blog", group: "solidity", name: "Solidity blog", type: "rss",
     url: "https://www.soliditylang.org/feed.xml",
     category: "developers", trust: "auto",
     kind: "blog",
@@ -170,7 +176,7 @@ export const SOURCES: Source[] = [
     kind: "blog",
   },
   {
-    id: "argot-blog", name: "Argot blog", type: "rss",
+    id: "argot-blog", group: "argot", name: "Argot blog", type: "rss",
     url: "https://www.argot.org/feed.xml",
     category: "developers", trust: "auto",
     kind: "blog",
@@ -198,32 +204,32 @@ export const SOURCES: Source[] = [
     kind: "blog",
   },
   {
-    id: "sourcify-blog", name: "Sourcify blog", type: "rss",
+    id: "sourcify-blog", group: "sourcify", name: "Sourcify blog", type: "rss",
     url: "https://docs.sourcify.dev/blog/rss.xml",
     category: "developers", trust: "auto",
     kind: "blog",
   },
   {
-    id: "erigon-blog", name: "Erigon blog", type: "rss",
+    id: "erigon-blog", group: "erigon", name: "Erigon blog", type: "rss",
     url: "https://erigon.tech/feed.xml",
     category: "staking", trust: "auto",
     kind: "blog",
   },
   {
-    id: "sigma-prime-blog", name: "Sigma Prime blog", type: "rss",
+    id: "sigma-prime-blog", group: "sigma-prime", name: "Sigma Prime blog", type: "rss",
     url: "https://blog.sigmaprime.io/feeds/all.atom.xml",
     site: "https://sigmaprime.io/blog/",
     category: "staking", trust: "auto",
     kind: "blog",
   },
   {
-    id: "chainsafe-blog", name: "ChainSafe blog", type: "rss",
+    id: "chainsafe-blog", group: "chainsafe", name: "ChainSafe blog", type: "rss",
     url: "https://blog.chainsafe.io/rss/",
     category: "staking", trust: "auto",
     kind: "blog",
   },
   {
-    id: "apeworx-blog", name: "ApeWorX blog", type: "rss",
+    id: "apeworx-blog", group: "apeworx", name: "ApeWorX blog", type: "rss",
     url: "https://api.paragraph.com/blogs/rss/@apeworx",
     site: "https://paragraph.com/@apeworx",
     category: "developers", trust: "auto",
@@ -254,7 +260,7 @@ export const SOURCES: Source[] = [
     kind: "blog",
   },
   {
-    id: "vyper-blog", name: "Vyper blog", type: "rss",
+    id: "vyper-blog", group: "vyper", name: "Vyper blog", type: "rss",
     url: "https://blog.vyperlang.org/index.xml",
     category: "developers", trust: "auto", kind: "blog",
     // Hugo baseURL misconfigured; item links are relative paths.
@@ -275,7 +281,7 @@ export const SOURCES: Source[] = [
     kind: "blog",
   },
   {
-    id: "fe-blog", name: "Fe blog", type: "scraped",
+    id: "fe-blog", group: "fe", name: "Fe blog", type: "scraped",
     listUrl: "https://blog.fe-lang.org/", baseUrl: "https://blog.fe-lang.org", parser: "fe",
     category: "developers", trust: "auto",
     kind: "blog",
@@ -304,16 +310,16 @@ export const SOURCES: Source[] = [
 
   // ------------------------------------------------------- client releases
   { id: "geth", name: "Geth", type: "release", owner: "ethereum", repo: "go-ethereum", category: "staking", trust: "auto", kind: "execution layer client" },
-  { id: "erigon", name: "Erigon", type: "release", owner: "erigontech", repo: "erigon", category: "staking", trust: "auto", kind: "execution layer client" },
+  { id: "erigon", group: "erigon", name: "Erigon", type: "release", owner: "erigontech", repo: "erigon", category: "staking", trust: "auto", kind: "execution layer client" },
   { id: "nethermind", name: "Nethermind", type: "release", owner: "NethermindEth", repo: "nethermind", category: "staking", trust: "auto", kind: "execution layer client" },
   { id: "besu", name: "Besu", type: "release", owner: "besu-eth", repo: "besu", category: "staking", trust: "auto", kind: "execution layer client" },
   { id: "reth", name: "Reth", type: "release", owner: "paradigmxyz", repo: "reth", category: "staking", trust: "auto", kind: "execution layer client" },
   { id: "ethrex", name: "Ethrex", type: "release", owner: "lambdaclass", repo: "ethrex", category: "staking", trust: "auto", kind: "execution layer client" },
   { id: "prysm", name: "Prysm", type: "release", owner: "OffchainLabs", repo: "prysm", category: "staking", trust: "auto", kind: "consensus layer client" },
-  { id: "lighthouse", name: "Lighthouse", type: "release", owner: "sigp", repo: "lighthouse", category: "staking", trust: "auto", kind: "consensus layer client" },
+  { id: "lighthouse", group: "sigma-prime", name: "Lighthouse", type: "release", owner: "sigp", repo: "lighthouse", category: "staking", trust: "auto", kind: "consensus layer client" },
   { id: "teku", name: "Teku", type: "release", owner: "ConsenSys", repo: "teku", category: "staking", trust: "auto", kind: "consensus layer client" },
   { id: "nimbus", name: "Nimbus", type: "release", owner: "status-im", repo: "nimbus-eth2", category: "staking", trust: "auto", kind: "consensus layer client" },
-  { id: "lodestar", name: "Lodestar", type: "release", owner: "ChainSafe", repo: "lodestar", category: "staking", trust: "auto", kind: "consensus layer client" },
+  { id: "lodestar", group: "chainsafe", name: "Lodestar", type: "release", owner: "ChainSafe", repo: "lodestar", category: "staking", trust: "auto", kind: "consensus layer client" },
   { id: "grandine", name: "Grandine", type: "release", owner: "grandinetech", repo: "grandine", category: "staking", trust: "auto", kind: "consensus layer client" },
   {
     // Not a client; releases are always alpha/beta so prereleases are kept.
@@ -325,10 +331,10 @@ export const SOURCES: Source[] = [
 
   // ------------------------------------------------------- dev tool releases
   { id: "halmos", name: "Halmos", type: "release", owner: "a16z", repo: "halmos", category: "developers", trust: "auto", kind: "security" },
-  { id: "ape", name: "Ape", type: "release", owner: "ApeWorX", repo: "ape", category: "developers", trust: "auto", kind: "framework" },
-  { id: "equivm", name: "EquiVM", type: "release", owner: "argotorg", repo: "EquiVM", category: "developers", trust: "auto", kind: "language" },
-  { id: "fe", name: "Fe", type: "release", owner: "argotorg", repo: "fe", category: "developers", trust: "auto", kind: "language" },
-  { id: "hevm", name: "hevm", type: "release", owner: "argotorg", repo: "hevm", category: "developers", trust: "auto", kind: "security" },
+  { id: "ape", group: "apeworx", name: "Ape", type: "release", owner: "ApeWorX", repo: "ape", category: "developers", trust: "auto", kind: "framework" },
+  { id: "equivm", group: "argot", name: "EquiVM", type: "release", owner: "argotorg", repo: "EquiVM", category: "developers", trust: "auto", kind: "language" },
+  { id: "fe", group: "fe", name: "Fe", type: "release", owner: "argotorg", repo: "fe", category: "developers", trust: "auto", kind: "language" },
+  { id: "hevm", group: "argot", name: "hevm", type: "release", owner: "argotorg", repo: "hevm", category: "developers", trust: "auto", kind: "security" },
   { id: "revm", name: "Revm", type: "release", owner: "bluealloy", repo: "revm", category: "developers", trust: "auto", kind: "library" },
   { id: "evmole", name: "EVMole", type: "release", owner: "cdump", repo: "evmole", category: "developers", trust: "auto", kind: "security" },
   { id: "echidna", name: "Echidna", type: "release", owner: "crytic", repo: "echidna", category: "developers", trust: "auto", kind: "security" },
@@ -339,7 +345,7 @@ export const SOURCES: Source[] = [
   { id: "headlong", name: "Headlong", type: "release", owner: "esaulpaugh", repo: "headlong", category: "developers", trust: "auto", kind: "client library" },
   { id: "ethers-js", name: "Ethers.js", type: "release", owner: "ethers-io", repo: "ethers.js", category: "developers", trust: "auto", kind: "client library" },
   { id: "ethereumjs-monorepo", name: "EthereumJS Monorepo", type: "release", owner: "ethereumjs", repo: "ethereumjs-monorepo", category: "developers", trust: "auto", kind: "client library", tagFilter: /^@ethereumjs\/vm@/ },
-  { id: "ethstaker-deposit-cli", name: "EthStaker Deposit CLI", type: "release", owner: "ethstaker", repo: "ethstaker-deposit-cli", category: "developers", trust: "auto", kind: "developer tool" },
+  { id: "ethstaker-deposit-cli", group: "ethstaker", name: "EthStaker Deposit CLI", type: "release", owner: "ethstaker", repo: "ethstaker-deposit-cli", category: "developers", trust: "auto", kind: "developer tool" },
   { id: "voltaire", name: "Voltaire", type: "release", owner: "evmts", repo: "voltaire", category: "developers", trust: "auto", kind: "client library" },
   { id: "forge-std", name: "Forge Std", type: "release", owner: "foundry-rs", repo: "forge-std", category: "developers", trust: "auto", kind: "framework" },
   { id: "foundry", name: "Foundry", type: "release", owner: "foundry-rs", repo: "foundry", category: "developers", trust: "auto", kind: "framework" },
@@ -349,7 +355,7 @@ export const SOURCES: Source[] = [
   { id: "gas-cost-estimator", name: "Gas Cost Estimator", type: "release", owner: "imapp-pl", repo: "gas-cost-estimator", category: "developers", trust: "auto", kind: "developer tool" },
   { id: "heimdall", name: "Heimdall", type: "release", owner: "Jon-Becker", repo: "heimdall-rs", category: "developers", trust: "auto", kind: "security" },
   { id: "nethereum", name: "Nethereum", type: "release", owner: "Nethereum", repo: "Nethereum", category: "developers", trust: "auto", kind: "client library" },
-  { id: "hardhat", name: "Hardhat", type: "release", owner: "NomicFoundation", repo: "hardhat", category: "developers", trust: "auto", kind: "framework", tagFilter: /^hardhat@/ },
+  { id: "hardhat", group: "hardhat", name: "Hardhat", type: "release", owner: "NomicFoundation", repo: "hardhat", category: "developers", trust: "auto", kind: "framework", tagFilter: /^hardhat@/ },
   { id: "solx", name: "solx", type: "release", owner: "NomicFoundation", repo: "solx", category: "developers", trust: "auto", kind: "language" },
   { id: "openzeppelin-contracts", name: "OpenZeppelin Contracts", type: "release", owner: "OpenZeppelin", repo: "openzeppelin-contracts", category: "developers", trust: "auto", kind: "library" },
   { id: "otterscan", name: "Otterscan", type: "release", owner: "otterscan", repo: "otterscan", category: "developers", trust: "auto", kind: "developer tool" },
@@ -363,13 +369,13 @@ export const SOURCES: Source[] = [
   { id: "prettier-solidity", name: "Prettier Solidity", type: "release", owner: "prettier-solidity", repo: "prettier-plugin-solidity", category: "developers", trust: "auto", kind: "developer tool" },
   { id: "solhint", name: "Solhint", type: "release", owner: "protofire", repo: "solhint", category: "developers", trust: "auto", kind: "security" },
   { id: "semaphore", name: "Semaphore", type: "release", owner: "semaphore-protocol", repo: "semaphore", category: "developers", trust: "auto", kind: "library" },
-  { id: "solidity", name: "Solidity", type: "release", owner: "argotorg", repo: "solidity", category: "developers", trust: "auto", kind: "language" },
-  { id: "sourcify", name: "Sourcify", type: "release", owner: "ethereum", repo: "sourcify", category: "developers", trust: "auto", kind: "contract verification", tagFilter: /^sourcify-server@/ },
+  { id: "solidity", group: "solidity", name: "Solidity", type: "release", owner: "argotorg", repo: "solidity", category: "developers", trust: "auto", kind: "language" },
+  { id: "sourcify", group: "sourcify", name: "Sourcify", type: "release", owner: "ethereum", repo: "sourcify", category: "developers", trust: "auto", kind: "contract verification", tagFilter: /^sourcify-server@/ },
   { id: "blst", name: "BLST", type: "release", owner: "supranational", repo: "blst", category: "developers", trust: "auto", kind: "library" },
   { id: "slither-mcp", name: "Slither MCP", type: "release", owner: "trailofbits", repo: "slither-mcp", category: "developers", trust: "auto", kind: "security" },
   { id: "zerokit", name: "ZeroKit", type: "release", owner: "vacp2p", repo: "zerokit", category: "developers", trust: "auto", kind: "library" },
   { id: "solady", name: "Solady", type: "release", owner: "Vectorized", repo: "solady", category: "developers", trust: "auto", kind: "library" },
-  { id: "vyper", name: "Vyper", type: "release", owner: "vyperlang", repo: "vyper", category: "developers", trust: "auto", kind: "language" },
+  { id: "vyper", group: "vyper", name: "Vyper", type: "release", owner: "vyperlang", repo: "vyper", category: "developers", trust: "auto", kind: "language" },
   { id: "viem", name: "Viem", type: "release", owner: "wevm", repo: "viem", category: "developers", trust: "auto", kind: "client library", tagFilter: /^viem@/ },
   { id: "wagmi", name: "Wagmi", type: "release", owner: "wevm", repo: "wagmi", category: "developers", trust: "auto", kind: "client library", tagFilter: /^wagmi@/ },
 

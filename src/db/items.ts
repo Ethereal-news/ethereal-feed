@@ -17,10 +17,14 @@ export interface ItemRow {
   published_at: string;
   fetched_at: string;
   status: string;
+  /** Story this item belongs to; NULL only between insert and the run's cluster pass. */
+  story_id: number | null;
+  /** primary | more | commentary; see fetch/cluster.ts. */
+  story_role: string;
 }
 
 const COLS =
-  "id, key, url, title, description, source_id, source_type, category, author, author_name, version, prerelease, published_at, fetched_at, status";
+  "id, key, url, title, description, source_id, source_type, category, author, author_name, version, prerelease, published_at, fetched_at, status, story_id, story_role";
 
 /** Name to show for an item's author: the display name where set, else the username. */
 export function authorName(i: Pick<ItemRow, "author" | "author_name">): string | null {

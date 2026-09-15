@@ -1,6 +1,7 @@
 import type { Env } from "../index";
 import { SOURCES, type Source } from "../config/sources";
-import { checkLatestIssues } from "./newsletter";
+import { checkLatestIssues, linkForm } from "./newsletter";
+import { clusterNew } from "./cluster";
 
 /** What every fetcher returns; run.ts turns these into rows. */
 export interface RawItem {
@@ -14,6 +15,8 @@ export interface RawItem {
   author_name?: string;
   version?: string;
   prerelease?: boolean;
+  /** http(s) links found in the body, raw; stored in outbound_links for clustering. */
+  links?: string[];
   published_at: string; // ISO
 }
 
@@ -102,6 +105,17 @@ export async function runFetch(env: Env): Promise<void> {
     ).bind(runAt, source.id, msg.slice(0, 500));
   });
   await env.DB.batch(runRows);
+
+  // Story clustering over published rows without a story: this run's inserts,
+  // pending rows an allowlist has since published, and everything on the
+  // first run after migration 0006. Best-effort: an unclustered item is
+  // picked up by the next run (story_id stays NULL).
+  try {
+    const { clustered, joined } = await clusterNew(env, runAt);
+    if (clustered) console.log(`cluster: ${clustered} new item(s), ${joined} joined an existing story`);
+  } catch (e) {
+    console.error("cluster failed:", e instanceof Error ? e.message : e);
+  }
 
   // Newsletter appearances are best-effort; never let them fail the run.
   try {
@@ -221,5 +235,47 @@ async function upsertItems(env: Env, source: Source, items: RawItem[], fetchedAt
       )
     )
   );
+  await storeLinks(env, items);
   return inserted;
+}
+
+/** Links per item in storage form, without the item's own URL. */
+function linkRows(item: RawItem): string[] {
+  const self = linkForm(item.url);
+  const out = new Set<string>();
+  for (const raw of item.links ?? []) {
+    const form = linkForm(raw);
+    if (form && form !== self) out.add(form);
+  }
+  return [...out];
+}
+
+/**
+ * Record each item's outbound links. Runs after the upsert (ids are needed)
+ * on insert and update alike, so a body edited after first sight is picked
+ * up; links that disappear from a body are kept.
+ */
+async function storeLinks(env: Env, items: RawItem[]): Promise<void> {
+  const linked = items.map((i) => ({ key: i.key, links: linkRows(i) })).filter((i) => i.links.length > 0);
+  if (linked.length === 0) return;
+  const ids = await env.DB.prepare(
+    `SELECT id, key FROM items WHERE key IN (${linked.map(() => "?").join(",")})`
+  ).bind(...linked.map((i) => i.key)).all<{ id: number; key: string }>();
+  const idByKey = new Map(ids.results.map((r) => [r.key, r.id]));
+
+  const pairs: Array<[number, string]> = [];
+  for (const i of linked) {
+    const id = idByKey.get(i.key);
+    if (id !== undefined) for (const url of i.links) pairs.push([id, url]);
+  }
+  const stmts: D1PreparedStatement[] = [];
+  for (let i = 0; i < pairs.length; i += 45) {
+    const chunk = pairs.slice(i, i + 45);
+    stmts.push(
+      env.DB.prepare(
+        `INSERT OR IGNORE INTO outbound_links (item_id, url) VALUES ${chunk.map(() => "(?, ?)").join(",")}`
+      ).bind(...chunk.flat())
+    );
+  }
+  if (stmts.length) await env.DB.batch(stmts);
 }

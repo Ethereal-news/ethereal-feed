@@ -1,12 +1,14 @@
 import type { ScrapedSource } from "../config/sources";
 import type { RawItem } from "./run";
 import { fetchText } from "./http";
-import { decodeEntities, normalizeUrl, stripHtml, truncate } from "./html";
+import { decodeEntities, extractLinks, normalizeUrl, stripHtml, truncate } from "./html";
 
 export interface ScrapedEntry {
   href: string;
   title: string;
   description: string;
+  /** Raw excerpt HTML when the list page carries one; links are taken from it. */
+  body?: string;
   published: Date;
 }
 
@@ -119,6 +121,7 @@ function parseLightclientBlog(html: string): ScrapedEntry[] {
       href: decodeEntities(rawHref),
       title: decodeEntities(title),
       description: summary ? stripHtml(summary) : "",
+      body: summary,
       published: new Date(`${dateStr} UTC`),
     });
   }
@@ -174,6 +177,7 @@ export async function fetchScraped(source: ScrapedSource): Promise<RawItem[]> {
       url,
       title: e.title.trim(),
       description: truncate(e.description),
+      links: e.body ? extractLinks(e.body) : [],
       published_at: e.published.toISOString(),
     });
   }

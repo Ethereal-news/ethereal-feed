@@ -75,3 +75,35 @@ export function parseDate(s: string | undefined | null): Date | null {
   const d = new Date(String(s).trim());
   return isNaN(d.getTime()) ? null : d;
 }
+
+/** Paths that can never be an item: PR, issue, commit and compare pages. */
+const GITHUB_NOISE = /^https?:\/\/github\.com\/[^/]+\/[^/]+\/(pull|issues|commit|compare)\b/;
+const ASSET_EXT = /\.(png|jpe?g|gif|svg|webp|ico|mp4|webm|pdf)$/i;
+
+/**
+ * Every http(s) link in a body: HTML (href values are found as bare URLs once
+ * entities are decoded), markdown, or plain text. Deduplicated, in order of
+ * first appearance, trailing punctuation dropped, PR/commit/asset links
+ * skipped. Links are returned raw; callers normalize.
+ */
+export function extractLinks(body: string, max = 100): string[] {
+  const text = decodeEntities(body.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1"));
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const m of text.matchAll(/https?:\/\/[^\s<>"'`)\]\\]+/g)) {
+    const raw = m[0].replace(/[.,;:!?]+$/, "");
+    if (GITHUB_NOISE.test(raw) || ASSET_EXT.test(raw)) continue;
+    let parsed: URL;
+    try {
+      parsed = new URL(raw);
+    } catch {
+      continue;
+    }
+    if (!parsed.hostname.includes(".")) continue;
+    if (seen.has(raw)) continue;
+    seen.add(raw);
+    out.push(raw);
+    if (out.length >= max) break;
+  }
+  return out;
+}

@@ -1,7 +1,7 @@
 import type { DiscourseSource } from "../config/sources";
 import type { RawItem } from "./run";
 import { fetchJson, fetchText } from "./http";
-import { stripHtml, truncate } from "./html";
+import { extractLinks, stripHtml, truncate } from "./html";
 import { parseFeed } from "./rss";
 
 /**
@@ -70,6 +70,8 @@ export async function fetchDiscourse(source: DiscourseSource): Promise<RawItem[]
       // dc:creator is "@username"; trustedAuthors are bare usernames.
       author,
       author_name: author ? names.get(author) : undefined,
+      // The RSS body is the full first post; its links are what the topic is about.
+      links: extractLinks(e.body),
       published_at: e.published.toISOString(),
     });
   }

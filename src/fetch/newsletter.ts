@@ -1,5 +1,5 @@
 import type { Env } from "../index";
-import { SOURCES, siteFor, type Source } from "../config/sources";
+import { SOURCES, siteFor, type DiscourseSource, type Source } from "../config/sources";
 import { parseTopicUrl } from "./discourse";
 import { normalizeUrl } from "./html";
 import { fetchText } from "./http";
@@ -158,13 +158,38 @@ export function buildItemIndex(rows: Array<{ key: string; url: string }>): ItemI
   return { byUrl, byKey };
 }
 
-/** Discourse key a forum link would have, if it is a topic link on a configured forum. */
-function discourseKeyFor(url: string): string | null {
+/** The configured forum a link points into, plus its topic id, if it is a topic link. */
+function discourseTopicFor(url: string): { source: DiscourseSource; id: string } | null {
   const source_id = matchSource(url);
   const s = source_id ? (SOURCES.find((x) => x.id === source_id) as Source | undefined) : undefined;
   if (!s || s.type !== "discourse") return null;
   const topic = parseTopicUrl(url);
-  return topic ? `discourse:${new URL(s.url).host}:${topic.id}` : null;
+  return topic ? { source: s, id: topic.id } : null;
+}
+
+/** Discourse key a forum link would have, if it is a topic link on a configured forum. */
+function discourseKeyFor(url: string): string | null {
+  const t = discourseTopicFor(url);
+  return t ? `discourse:${new URL(t.source.url).host}:${t.id}` : null;
+}
+
+/**
+ * The form outbound links are stored in: matchForm(), with topic links on a
+ * configured forum collapsed to the slug-free URL items use
+ * (`https://<host>/t/<id>`), so a link to `/t/some-slug/123/4` matches the
+ * topic item by id. Returns null for anything that does not parse.
+ */
+export function linkForm(url: string): string | null {
+  let u: string;
+  try {
+    // GitHub percent-encodes "@" in release URLs (tag/hardhat%403.16.0); links elsewhere write it plain.
+    u = matchForm(url).replace(/%40/gi, "@");
+    new URL(u);
+  } catch {
+    return null;
+  }
+  const t = discourseTopicFor(u);
+  return t ? `${t.source.url.replace(/\/$/, "")}/t/${t.id}` : u;
 }
 
 /** The items.key a link refers to, or null. */
