@@ -99,6 +99,8 @@ export const SOURCES: Source[] = [
     url: "https://blog.ethereum.org/feed.xml",
     category: "ecosystem", trust: "auto",
     kind: "blog",
+    // The feed links /en/...; the canonical (and what issues link) has no locale prefix.
+    rewriteUrl: (u) => u.replace(/^https:\/\/blog\.ethereum\.org\/en\//, "https://blog.ethereum.org/"),
   },
   {
     id: "ech", name: "ECH", type: "rss",
@@ -149,6 +151,8 @@ export const SOURCES: Source[] = [
     url: "https://www.soliditylang.org/feed.xml",
     category: "developers", trust: "auto",
     kind: "blog",
+    // The feed emits "https://soliditylang.org///blog/..."; collapse the doubled slashes.
+    rewriteUrl: (u) => u.replace(/^(https?:\/\/[^/]+)\/{2,}/, "$1/"),
   },
   {
     id: "josh-stark-blog", name: "Josh Stark blog", type: "rss",

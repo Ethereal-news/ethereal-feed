@@ -5,7 +5,7 @@
  *
  * Runs locally, not in the Worker. Reads the item index from the LOCAL D1
  * database via wrangler, so run `npm run dev` / migrations first. Writes an
- * SQL file of INSERT OR IGNORE statements (default /tmp/newsletter-backfill.sql)
+ * SQL file of upsert statements (existing rows only gain missing matches) (default /tmp/newsletter-backfill.sql)
  * and prints a summary. Apply with:
  *   npx wrangler d1 execute ethereal-feed --local  --file /tmp/newsletter-backfill.sql
  *   npx wrangler d1 execute ethereal-feed --remote --file /tmp/newsletter-backfill.sql
@@ -73,7 +73,7 @@ async function main() {
 
   const lines = all.map(
     (r) =>
-      `INSERT OR IGNORE INTO newsletter_links (issue_url, issue_date, url, source_id, item_key) VALUES (${sql(r.issue_url)}, ${sql(r.issue_date)}, ${sql(r.url)}, ${sql(r.source_id)}, ${sql(r.item_key)});`
+      `INSERT INTO newsletter_links (issue_url, issue_date, url, source_id, item_key) VALUES (${sql(r.issue_url)}, ${sql(r.issue_date)}, ${sql(r.url)}, ${sql(r.source_id)}, ${sql(r.item_key)}) ON CONFLICT(issue_url, url) DO UPDATE SET source_id = COALESCE(newsletter_links.source_id, excluded.source_id), item_key = COALESCE(newsletter_links.item_key, excluded.item_key);`
   );
   writeFileSync(out, lines.join("\n") + "\n");
 

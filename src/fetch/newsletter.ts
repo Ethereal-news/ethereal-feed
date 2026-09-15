@@ -136,11 +136,23 @@ export interface ItemIndex {
   byKey: Set<string>;
 }
 
+/**
+ * The form URLs are compared in: normalized, without a "www." prefix, and with
+ * doubled slashes in the path collapsed, so an issue's "www.soliditylang.org/…"
+ * matches the feed's "soliditylang.org///…".
+ */
+export function matchForm(url: string): string {
+  return normalizeUrl(url)
+    .replace(/^(https?:\/\/)www\./, "$1")
+    .replace(/^(https?:\/\/[^/]+)\/{2,}/, "$1/")
+    .replace(/([^:])\/{2,}/g, "$1/");
+}
+
 export function buildItemIndex(rows: Array<{ key: string; url: string }>): ItemIndex {
   const byUrl = new Map<string, string>();
   const byKey = new Set<string>();
   for (const r of rows) {
-    byUrl.set(normalizeUrl(r.url), r.key);
+    byUrl.set(matchForm(r.url), r.key);
     byKey.add(r.key);
   }
   return { byUrl, byKey };
@@ -157,7 +169,7 @@ function discourseKeyFor(url: string): string | null {
 
 /** The items.key a link refers to, or null. */
 export function matchItem(url: string, index: ItemIndex): string | null {
-  const direct = index.byUrl.get(normalizeUrl(url));
+  const direct = index.byUrl.get(matchForm(url));
   if (direct) return direct;
   const dk = discourseKeyFor(url);
   return dk && index.byKey.has(dk) ? dk : null;
@@ -168,9 +180,13 @@ export async function loadItemIndex(db: D1Database, urls: string[]): Promise<Ite
   const wanted = new Set<string>();
   const keys = new Set<string>();
   for (const u of urls) {
-    const n = normalizeUrl(u);
-    wanted.add(n);
-    wanted.add(n + "/");
+    // Stored URLs may carry a www. prefix or a trailing slash; ask for every spelling.
+    const n = matchForm(u);
+    const www = n.replace(/^(https?:\/\/)/, "$1www.");
+    for (const v of [n, www]) {
+      wanted.add(v);
+      wanted.add(v + "/");
+    }
     const dk = discourseKeyFor(u);
     if (dk) keys.add(dk);
   }
@@ -211,8 +227,11 @@ export async function collectIssue(issue: { url: string; date: string }, db: D1D
   return toRows(links, index);
 }
 
-export const INSERT_LINK =
-  "INSERT OR IGNORE INTO newsletter_links (issue_url, issue_date, url, source_id, item_key) VALUES (?, ?, ?, ?, ?)";
+/** Insert a link; if it is already recorded, fill in a match that was missing before. */
+export const INSERT_LINK = `INSERT INTO newsletter_links (issue_url, issue_date, url, source_id, item_key) VALUES (?, ?, ?, ?, ?)
+  ON CONFLICT(issue_url, url) DO UPDATE SET
+    source_id = COALESCE(newsletter_links.source_id, excluded.source_id),
+    item_key = COALESCE(newsletter_links.item_key, excluded.item_key)`;
 
 /**
  * Record links from the newest two issues. Two rather than one so a late edit
