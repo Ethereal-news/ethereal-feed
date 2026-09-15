@@ -9,11 +9,12 @@ import { linkForm } from "./newsletter";
  * joins an existing story or founds its own; two existing stories are never
  * merged. Candidates are looked up by three rules, first hit wins:
  *
- *   1. Cross-link: one of the new item's outbound links is an existing
- *      item's URL, or an existing item links to the new item's URL. Both
- *      sides are compared in linkForm(), so Discourse topic links match by
- *      topic id whatever slug they carry.
- *   2. Shared token, within TOKEN_WINDOW_DAYS: a version ("v1.16.4",
+ *   1. Cross-link, within WINDOW_DAYS: one of the new item's outbound links
+ *      is an existing item's URL, or an existing item links to the new
+ *      item's URL. Both sides are compared in linkForm(), so Discourse topic
+ *      links match by topic id whatever slug they carry. The window keeps a
+ *      post that merely cites an older one out of its story.
+ *   2. Shared token, within WINDOW_DAYS: a version ("v1.16.4",
  *      "0.8.30") or package-ish ("slang-solx") token appears in the new
  *      item's title or description and in an existing item's title or
  *      description, and either the two share a config `group` or the token
@@ -29,9 +30,8 @@ import { linkForm } from "./newsletter";
  * created inside one batch without reading ids back.
  */
 
-/** How far back existing items are loaded as cross-link candidates. */
-export const LINK_POOL_DAYS = 90;
-export const TOKEN_WINDOW_DAYS = 7;
+/** Rules 1 and 2 only consider items published within this many days of each other. */
+export const WINDOW_DAYS = 7;
 export const GROUP_WINDOW_HOURS = 72;
 export const GENERIC_TOKEN_MAX = 5;
 
@@ -136,10 +136,10 @@ export async function clusterNew(env: Env, now = new Date().toISOString()): Prom
   const fresh = await selectRows(db, "story_id IS NULL AND status = 'published' ORDER BY published_at ASC, id ASC", []);
   if (fresh.length === 0) return { clustered: 0, joined: 0 };
 
-  // Candidate pool: published, already-clustered items back to LINK_POOL_DAYS
+  // Candidate pool: published, already-clustered items back to WINDOW_DAYS
   // before the oldest new item. New items join the pool as they are
   // assigned, so two items from the same run can cluster with each other.
-  const lo = new Date(new Date(fresh[0].published_at).getTime() - LINK_POOL_DAYS * 86_400_000).toISOString();
+  const lo = new Date(new Date(fresh[0].published_at).getTime() - WINDOW_DAYS * 86_400_000).toISOString();
   const pool: Row[] = [];
   const byId = new Map<number, Row>();
   const byUrl = new Map<string, Row[]>();
@@ -165,6 +165,8 @@ export async function clusterNew(env: Env, now = new Date().toISOString()): Prom
   const stmts: D1PreparedStatement[] = [];
   let joined = 0;
 
+  const inWindow = (item: Row, row: Row) => gapMs(item, row) <= WINDOW_DAYS * 86_400_000;
+
   const rule1 = (item: Row): Row[] => {
     const out: Row[] = [];
     for (const link of outbound.get(item.id) ?? []) out.push(...(byUrl.get(String(link)) ?? []));
@@ -173,13 +175,13 @@ export async function clusterNew(env: Env, now = new Date().toISOString()): Prom
       const row = byId.get(Number(id));
       if (row) out.push(row);
     }
-    return out;
+    return out.filter((row) => inWindow(item, row));
   };
 
   const rule2 = (item: Row): Row[] => {
     const mine = tokensOf(item);
     if (mine.size === 0) return [];
-    const window = pool.filter((row) => gapMs(item, row) <= TOKEN_WINDOW_DAYS * 86_400_000);
+    const window = pool.filter((row) => inWindow(item, row));
     // Token -> how many items in the window carry it, the new item included.
     const seen = new Map<string, number>();
     for (const t of mine) seen.set(t, 1);
