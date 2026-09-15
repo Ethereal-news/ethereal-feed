@@ -21,7 +21,10 @@ import { linkForm } from "./newsletter";
  *      description, and either the two share a config `group` or the token
  *      is a version. Tokens seen in more than GENERIC_TOKEN_MAX items in the
  *      window are ignored as too generic.
- *   3. Same non-null config `group`, within GROUP_WINDOW_HOURS.
+ *   3. Same non-null config `group`, within GROUP_WINDOW_HOURS, and any
+ *      non-release item in the pair reads like a release announcement (a
+ *      release word or a version in its title or description). A blog post
+ *      that merely lands in the same week as a release stays on its own.
  *   4. Forkcast EIP status changes ("EIP-7645 (...) is now Declined for
  *      Hegota") join the nearest AllCoreDevs Execution or Consensus call
  *      recap published up to ACD_WINDOW_HOURS earlier: that is the call the
@@ -43,6 +46,9 @@ export const GROUP_WINDOW_HOURS = 72;
 export const GENERIC_TOKEN_MAX = 5;
 /** Rule 4: how long before a Forkcast status change the AllCoreDevs call may have been published. */
 export const ACD_WINDOW_HOURS = 48;
+
+/** Rule 3: what a blog post must say for a same-group release to be its story. */
+const ANNOUNCEMENT_RE = /\b(releas(?:e|ed|es|ing)|announc(?:e|ed|es|ing)|is out|now available|v?\d+\.\d+)\b/i;
 
 const FORKCAST = "forkcast";
 const STATUS_CHANGE_RE = /^(?:EIP|ERC|RIP)-\d+ \(.*\) is now /;
@@ -99,6 +105,11 @@ export function isStatusChange(row: Pick<Row, "source_id" | "title">): boolean {
 /** A Forkcast AllCoreDevs Execution or Consensus call recap. */
 export function isAcdCall(row: Pick<Row, "source_id" | "title">): boolean {
   return row.source_id === FORKCAST && ACD_CALL_RE.test(row.title);
+}
+
+/** A release passes as itself; anything else must read like a release announcement. */
+export function announcesRelease(row: Pick<Row, "source_type" | "title" | "description">): boolean {
+  return row.source_type === "release" || ANNOUNCEMENT_RE.test(`${row.title} ${row.description}`);
 }
 
 /** Lower is better: blog post, release, forum topic, AllCoreDevs call recap, anything else. */
@@ -229,9 +240,11 @@ export async function clusterNew(env: Env, now = new Date().toISOString()): Prom
   };
 
   const rule3 = (item: Row): Row[] =>
-    groupOf(item) === undefined
+    groupOf(item) === undefined || !announcesRelease(item)
       ? []
-      : pool.filter((row) => sameGroup(item, row) && gapMs(item, row) <= GROUP_WINDOW_HOURS * 3_600_000);
+      : pool.filter(
+          (row) => sameGroup(item, row) && announcesRelease(row) && gapMs(item, row) <= GROUP_WINDOW_HOURS * 3_600_000
+        );
 
   const rule4 = (item: Row): Row[] => {
     if (!isStatusChange(item)) return [];
