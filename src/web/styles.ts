@@ -87,7 +87,13 @@ td.muted,.muted{color:var(--muted)}
 .draft .since{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem .75rem;margin:0 0 1rem;font-size:.875rem}
 .draft .since input{font:inherit;color:inherit;background:transparent;border:1px solid var(--edge);border-radius:.25rem;padding:.25rem .5rem;margin-left:.25rem}
 .draft .pill{padding:.375rem .75rem}
-.draft pre{font-size:.75rem;line-height:1.5;margin:0;padding:.6rem .75rem;border:1px solid var(--rule);border-radius:.25rem;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+.draft .preview h3{font-size:1rem;margin:1.5rem 0 .5rem}
+.draft .preview h3:first-child{margin-top:.5rem}
+.draft .preview ul{margin:0;padding-left:1.25rem}
+.draft .preview li{margin:0 0 .375rem}
+.draft .preview a{text-decoration:underline;text-decoration-color:var(--underline);text-underline-offset:.15em}
+.draft .preview a:hover{text-decoration-color:currentColor}
+.draft .issue{color:var(--muted);font-size:.875rem;white-space:nowrap}
 
 /* footer */
 footer{margin-top:3rem;font-size:.875rem}
