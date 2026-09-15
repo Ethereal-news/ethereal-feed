@@ -22,6 +22,12 @@ import { linkForm } from "./newsletter";
  *      is a version. Tokens seen in more than GENERIC_TOKEN_MAX items in the
  *      window are ignored as too generic.
  *   3. Same non-null config `group`, within GROUP_WINDOW_HOURS.
+ *   4. Forkcast EIP status changes ("EIP-7645 (...) is now Declined for
+ *      Hegota") join the nearest AllCoreDevs Execution or Consensus call
+ *      recap published up to ACD_WINDOW_HOURS earlier: that is the call the
+ *      decision was made on. Forkcast entries carry no body or links, so the
+ *      other rules cannot see the connection. Testing calls and breakouts
+ *      do not anchor.
  *
  * A joining item is "more"; then the story's primary is recomputed: blog
  * post (not a bug post) > release > forum topic > other, ties to the
@@ -35,6 +41,12 @@ import { linkForm } from "./newsletter";
 export const WINDOW_DAYS = 7;
 export const GROUP_WINDOW_HOURS = 72;
 export const GENERIC_TOKEN_MAX = 5;
+/** Rule 4: how long before a Forkcast status change the AllCoreDevs call may have been published. */
+export const ACD_WINDOW_HOURS = 48;
+
+const FORKCAST = "forkcast";
+const STATUS_CHANGE_RE = /^(?:EIP|ERC|RIP)-\d+ \(.*\) is now /;
+const ACD_CALL_RE = /^AllCoreDevs - (?:Execution|Consensus) #\d+ call published$/;
 
 export type StoryRole = "primary" | "more" | "commentary";
 
@@ -79,13 +91,24 @@ function sameGroup(a: Row, b: Row): boolean {
   return g !== undefined && g === groupOf(b);
 }
 
-/** Lower is better. */
+/** A Forkcast "EIP-N (...) is now <status> for <fork>" entry. */
+export function isStatusChange(row: Pick<Row, "source_id" | "title">): boolean {
+  return row.source_id === FORKCAST && STATUS_CHANGE_RE.test(row.title);
+}
+
+/** A Forkcast AllCoreDevs Execution or Consensus call recap. */
+export function isAcdCall(row: Pick<Row, "source_id" | "title">): boolean {
+  return row.source_id === FORKCAST && ACD_CALL_RE.test(row.title);
+}
+
+/** Lower is better: blog post, release, forum topic, AllCoreDevs call recap, anything else. */
 export function rank(row: Row): number {
   const kind = SOURCE_BY_ID[row.source_id]?.kind;
   if (kind === "blog" && !/\bbug\b/i.test(row.title)) return 0;
   if (row.source_type === "release") return 1;
   if (row.source_type === "discourse") return 2;
-  return 3;
+  if (isAcdCall(row)) return 3;
+  return 4;
 }
 
 function gapMs(a: Row, b: Row): number {
@@ -136,6 +159,11 @@ export async function clusterNew(env: Env, now = new Date().toISOString()): Prom
   const db = env.DB;
   const fresh = await selectRows(db, "story_id IS NULL AND status = 'published' ORDER BY published_at ASC, id ASC", []);
   if (fresh.length === 0) return { clustered: 0, joined: 0 };
+  // Forkcast publishes a call recap and its status changes with one timestamp;
+  // the recap must be assigned first so the changes can join it (rule 4).
+  fresh.sort((a, b) =>
+    a.published_at < b.published_at ? -1 : a.published_at > b.published_at ? 1 : Number(isAcdCall(b)) - Number(isAcdCall(a)) || a.id - b.id
+  );
 
   // Candidate pool: published, already-clustered items back to WINDOW_DAYS
   // before the oldest new item. New items join the pool as they are
@@ -205,6 +233,16 @@ export async function clusterNew(env: Env, now = new Date().toISOString()): Prom
       ? []
       : pool.filter((row) => sameGroup(item, row) && gapMs(item, row) <= GROUP_WINDOW_HOURS * 3_600_000);
 
+  const rule4 = (item: Row): Row[] => {
+    if (!isStatusChange(item)) return [];
+    const at = new Date(item.published_at).getTime();
+    return pool.filter((row) => {
+      if (!isAcdCall(row)) return false;
+      const before = at - new Date(row.published_at).getTime();
+      return before >= 0 && before <= ACD_WINDOW_HOURS * 3_600_000;
+    });
+  };
+
   /** Every item of a story: what the database has, overridden by this run's in-memory assignments. */
   const membersOf = async (storyId: number): Promise<Row[]> => {
     const members = new Map<number, Row>();
@@ -227,7 +265,7 @@ export async function clusterNew(env: Env, now = new Date().toISOString()): Prom
 
   for (const item of fresh) {
     let candidates: Row[] = [];
-    for (const rule of [rule1, rule2, rule3]) {
+    for (const rule of [rule1, rule2, rule3, rule4]) {
       candidates = rule(item).filter((row) => row.id !== item.id && row.story_id !== null);
       if (candidates.length) break;
     }
