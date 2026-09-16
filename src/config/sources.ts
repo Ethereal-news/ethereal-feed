@@ -394,6 +394,13 @@ export const SOURCES: Source[] = [
     kind: "blog",
   },
   {
+    id: "thedao-security-fund-blog", name: "TheDAO Security Fund", type: "rss",
+    url: "https://api.paragraph.com/blogs/rss/@thedao.fund",
+    site: "https://paragraph.com/@thedao.fund",
+    category: "security", trust: "auto",
+    kind: "blog",
+  },
+  {
     id: "lido-blog", name: "Lido blog", type: "rss",
     url: "https://blog.lido.fi/rss/",
     category: "staking", trust: "auto",
