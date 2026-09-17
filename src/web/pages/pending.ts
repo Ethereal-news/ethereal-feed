@@ -4,7 +4,7 @@ import {
   authorTopicCounts, findByUrl, hidePending, joinStory, listPending, multiItemStories, newStory, recentStories,
   type ItemRow, type Story,
 } from "../../db/items";
-import { decodeEntities } from "../../fetch/html";
+import { decodeEntities, truncate } from "../../fetch/html";
 import { fetchText } from "../../fetch/http";
 import { linkForm, matchForm } from "../../fetch/newsletter";
 import { escapeHtml as h } from "../escape";
@@ -22,6 +22,8 @@ import { age, sourceLabel } from "../render";
 const ATTACH_CHOICES = 30;
 /** Multi-item stories listed with split buttons. */
 const SPLIT_LIST = 30;
+/** Longest title taken from an attached page. */
+const MAX_TITLE = 140;
 
 
 /** Ready-to-paste trustedAuthors literal: current names, then the pending page's new ones marked. */
@@ -146,7 +148,8 @@ async function fetchTitle(url: string): Promise<string> {
     const html = await fetchText(url, { Accept: "text/html" });
     const raw = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "";
     const title = decodeEntities(raw.replace(/<[^>]*>/g, "")).replace(/\s+/g, " ").trim();
-    return title || url;
+    // Some pages (X posts) put the whole body in <title>; keep it to a headline.
+    return title ? truncate(title, MAX_TITLE) : url;
   } catch {
     return url;
   }
