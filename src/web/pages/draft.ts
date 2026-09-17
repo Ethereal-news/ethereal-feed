@@ -1,5 +1,5 @@
 import type { Env } from "../../index";
-import { CATEGORIES } from "../../config/categories";
+import { CATEGORIES, type Category } from "../../config/categories";
 import { SOURCE_BY_ID } from "../../config/sources";
 import { authorName, listStories, newsletterAppearances, storyItems, type ItemRow, type Story } from "../../db/items";
 import { escapeHtml as h } from "../escape";
@@ -59,33 +59,82 @@ interface Bullet {
   sub: Line[];
 }
 
+interface Section {
+  name: string;
+  bullets: Bullet[];
+  /** Staking only: client releases pulled out into a trailing "Client releases:" block, by layer. */
+  clients?: { consensus: Bullet[]; execution: Bullet[] };
+}
+
+/** The section that gets a "Client releases:" block, as the issue lays it out. */
+const CLIENT_SECTION: Category = "staking";
+
+function clientLayer(story: Story): "consensus" | "execution" | null {
+  const kind = SOURCE_BY_ID[story.primary.source_id]?.kind;
+  if (kind === "consensus layer client") return "consensus";
+  if (kind === "execution layer client") return "execution";
+  return null;
+}
+
 /** Stories grouped under the newsletter sections (by the primary's category), in section order; empty sections omitted. */
-function sections(stories: Story[], issues: Map<string, string>): Array<{ name: string; bullets: Bullet[] }> {
-  const out: Array<{ name: string; bullets: Bullet[] }> = [];
+function sections(stories: Story[], issues: Map<string, string>): Section[] {
+  const out: Section[] = [];
+  const bulletFor = (s: Story, kind = true): Bullet => {
+    const line = lineFor(s.primary, issues.has(s.primary.key));
+    if (!kind) line.kind = null;
+    return { line, sub: storyItems(s).slice(1).map((i) => lineFor(i, issues.has(i.key))) };
+  };
   for (const c of CATEGORIES) {
-    const bullets = stories
-      .filter((s) => s.primary.category === c.slug)
-      .map((s) => ({
-        line: lineFor(s.primary, issues.has(s.primary.key)),
-        sub: storyItems(s).slice(1).map((i) => lineFor(i, issues.has(i.key))),
-      }));
-    if (bullets.length) out.push({ name: c.name, bullets });
+    const own = stories.filter((s) => s.primary.category === c.slug);
+    if (own.length === 0) continue;
+    if (c.slug !== CLIENT_SECTION) {
+      out.push({ name: c.name, bullets: own.map((s) => bulletFor(s)) });
+      continue;
+    }
+    // Staking: client releases go under "Client releases:" at the end, the layer heading standing in for the kind.
+    const clients = { consensus: [] as Bullet[], execution: [] as Bullet[] };
+    const bullets: Bullet[] = [];
+    for (const s of own) {
+      const layer = clientLayer(s);
+      if (layer) clients[layer].push(bulletFor(s, false));
+      else bullets.push(bulletFor(s));
+    }
+    out.push({ name: c.name, bullets, clients: clients.consensus.length || clients.execution.length ? clients : undefined });
   }
   return out;
 }
+
+const LAYERS = [
+  ["consensus", "Consensus layer"],
+  ["execution", "Execution layer"],
+] as const;
 
 function mdLine(l: Line): string {
   const title = `[${mdText(l.title)}](${l.url})`;
   return `${l.author ? `${l.author}: ` : ""}${title}${l.kind ? ` (${l.kind})` : ""}${l.description ? `: ${l.description}` : ""}${l.inIssue ? " ← issue" : ""}`;
 }
 
-function mdBullet(b: Bullet): string {
-  return [`* ${mdLine(b.line)}`, ...b.sub.map((l) => `  * ${mdLine(l)}`)].join("\n");
+function mdBullet(b: Bullet, depth = 0): string {
+  const pad = "  ".repeat(depth);
+  return [`${pad}* ${mdLine(b.line)}`, ...b.sub.map((l) => `${pad}  * ${mdLine(l)}`)].join("\n");
+}
+
+function mdSection(s: Section): string {
+  const lines = s.bullets.map((b) => mdBullet(b));
+  if (s.clients) {
+    lines.push("* Client releases:");
+    for (const [key, label] of LAYERS) {
+      const group = s.clients[key];
+      if (group.length === 0) continue;
+      lines.push(`  * ${label}:`, ...group.map((b) => mdBullet(b, 2)));
+    }
+  }
+  return `### ${s.name}\n\n${lines.join("\n")}`;
 }
 
 /** The whole draft as markdown, the form an issue is written in. */
 export function draftMarkdown(stories: Story[], issues: Map<string, string>): string {
-  const parts = sections(stories, issues).map((s) => `### ${s.name}\n\n${s.bullets.map(mdBullet).join("\n")}`);
+  const parts = sections(stories, issues).map(mdSection);
   return parts.join("\n\n") + (parts.length ? "\n" : "");
 }
 
@@ -98,11 +147,20 @@ function htmlBullet(b: Bullet): string {
   return `<li>${htmlLine(b.line)}${sub}</li>`;
 }
 
+function htmlSection(s: Section): string {
+  const items = s.bullets.map(htmlBullet);
+  if (s.clients) {
+    const layers = LAYERS.filter(([key]) => s.clients![key].length > 0)
+      .map(([key, label]) => `<li>${h(label)}:\n<ul>\n${s.clients![key].map(htmlBullet).join("\n")}\n</ul></li>`)
+      .join("\n");
+    items.push(`<li>Client releases:\n<ul>\n${layers}\n</ul></li>`);
+  }
+  return `<h3>${h(s.name)}</h3>\n<ul>\n${items.join("\n")}\n</ul>`;
+}
+
 /** The same draft rendered as it would read in an issue. */
 export function draftHtml(stories: Story[], issues: Map<string, string>): string {
-  return sections(stories, issues)
-    .map((s) => `<h3>${h(s.name)}</h3>\n<ul>\n${s.bullets.map(htmlBullet).join("\n")}\n</ul>`)
-    .join("\n");
+  return sections(stories, issues).map(htmlSection).join("\n");
 }
 
 /** since=YYYY-MM-DD (UTC), default the last Friday; null when malformed. */
