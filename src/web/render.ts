@@ -104,10 +104,19 @@ export function renderItem(item: ItemRow, now: Date, issue?: string, extra = "")
 </article>`;
 }
 
+/**
+ * What follows a secondary item's title in a "More:" line: "GitHub" for a
+ * release (its title already names the project and version), the link's
+ * host for a hand-attached item, else the source name.
+ */
+export function moreLabel(item: Pick<ItemRow, "source_id" | "source_type" | "url">): string {
+  return item.source_type === "release" ? "GitHub" : sourceLabel(item);
+}
+
 /** "Title (Source) · Title (Source)" for a story's secondary items. */
 function storyLinks(items: ItemRow[]): string {
   return items
-    .map((i) => `<a href="${h(i.url)}" rel="noopener">${h(i.title)}</a> (${h(sourceLabel(i))})`)
+    .map((i) => `<a href="${h(i.url)}" rel="noopener">${h(i.title)}</a> (${h(moreLabel(i))})`)
     .join(" · ");
 }
 

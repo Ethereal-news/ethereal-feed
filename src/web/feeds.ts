@@ -3,7 +3,7 @@ import { CATEGORY_NAME, type Category } from "../config/categories";
 import { authorName, listStories, type ItemRow, type Story } from "../db/items";
 import { escapeXml as x } from "./escape";
 import { PUBLIC_CACHE } from "./layout";
-import { categoryName, sourceLabel } from "./render";
+import { categoryName, moreLabel } from "./render";
 
 const FEED_LIMIT = 50;
 
@@ -32,7 +32,7 @@ function meta(env: Env, category: Category | undefined, path: string): FeedMeta 
 /** "More:" and "Commentary:" as plain text lines, one link per line, for feed bodies. */
 function storyText(s: Story): string {
   const block = (label: string, items: ItemRow[]) =>
-    items.length ? [`${label}:`, ...items.map((i) => `${i.title} (${sourceLabel(i)}) ${i.url}`)].join("\n") : "";
+    items.length ? [`${label}:`, ...items.map((i) => `${i.title} (${moreLabel(i)}) ${i.url}`)].join("\n") : "";
   return [block("More", s.more), block("Commentary", s.commentary)].filter(Boolean).join("\n\n");
 }
 
