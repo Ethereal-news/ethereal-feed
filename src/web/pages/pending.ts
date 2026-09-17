@@ -114,9 +114,10 @@ async function storyTools(env: Env): Promise<string> {
   const options = choices.map((c) => `<option value="${c.id}">${h(c.title)}</option>`).join("\n");
   const form = `<section>
 <h2>Attach URL to story</h2>
-<p class="hint">Adds the link as a "more" or "commentary" item of the chosen story. A link already in the feed is moved rather than duplicated; anything else becomes a hand-added item titled from the page.</p>
+<p class="hint">Adds the link as a "more" or "commentary" item of the chosen story. A link already in the feed is moved rather than duplicated; anything else becomes a hand-added item, titled as given or from the page's title tag (sites like X may refuse that fetch).</p>
 <form class="attach" method="post" action="/pending/attach">
 <label>URL <input type="url" name="url" required placeholder="https://"></label>
+<label>Title <input type="text" name="title" maxlength="${MAX_TITLE}" placeholder="from the page if empty"></label>
 <label>Story <select name="story" required>${options}</select></label>
 <label>Role <select name="role"><option value="more">more</option><option value="commentary">commentary</option></select></label>
 <button class="pill" type="submit">Attach</button>
@@ -163,16 +164,18 @@ function urlForms(url: string): string[] {
 }
 
 /**
- * POST /pending/attach with url, story, role: put the link in the story. An
- * existing item with that URL is moved (its primary cannot be taken from a
- * story that still has other items); otherwise a "manual" item is created
- * with the page's title and the primary's category.
+ * POST /pending/attach with url, story, role and optional title: put the
+ * link in the story. An existing item with that URL is moved (its primary
+ * cannot be taken from a story that still has other items); otherwise a
+ * "manual" item is created in the primary's category, titled as given or
+ * from the page.
  */
 export async function attachToStory(request: Request, env: Env): Promise<Response> {
   const form = await request.formData().catch(() => null);
   const url = String(form?.get("url") ?? "").trim();
   const storyId = Number(form?.get("story"));
   const role = String(form?.get("role") ?? "");
+  const given = String(form?.get("title") ?? "").replace(/\s+/g, " ").trim();
   if (!/^https?:\/\//.test(url) || !linkForm(url)) return new Response("Bad URL", { status: 400 });
   if (!Number.isInteger(storyId) || storyId <= 0) return new Response("Bad story", { status: 400 });
   if (role !== "more" && role !== "commentary") return new Response("Bad role", { status: 400 });
@@ -199,7 +202,7 @@ export async function attachToStory(request: Request, env: Env): Promise<Respons
     return back();
   }
 
-  const title = await fetchTitle(url);
+  const title = given ? truncate(given, MAX_TITLE) : await fetchTitle(url);
   await env.DB.batch([
     env.DB.prepare(
       `INSERT INTO items (key, url, title, description, source_id, source_type, category, published_at, fetched_at, status, story_id, story_role)
