@@ -224,7 +224,11 @@ async function upsertItems(env: Env, source: Source, items: RawItem[], fetchedAt
     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
     ON CONFLICT(key) DO UPDATE SET
       url = excluded.url, title = excluded.title,
-      description = excluded.description, author = excluded.author, author_name = excluded.author_name
+      description = excluded.description, author = excluded.author, author_name = excluded.author_name,
+      prerelease = excluded.prerelease,
+      -- A release first seen as a pre-release (and hidden for it) is published once GitHub drops the flag.
+      status = CASE WHEN items.status = 'hidden' AND items.prerelease = 1 AND excluded.prerelease = 0
+                    THEN excluded.status ELSE items.status END
   `);
   await env.DB.batch(
     items.map((i) =>
