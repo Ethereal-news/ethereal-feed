@@ -1,4 +1,5 @@
 import type { Env } from "../../index";
+import { CATEGORIES, isCategory } from "../../config/categories";
 import { MANUAL_SOURCE_ID, SOURCE_BY_ID, siteFor, type DiscourseSource } from "../../config/sources";
 import {
   authorTopicCounts, findByUrl, hidePending, joinStory, listPending, multiItemStories, newStory, recentStories,
@@ -112,14 +113,16 @@ async function storyTools(env: Env): Promise<string> {
   const stories = await multiItemStories(env.DB, SPLIT_LIST);
 
   const options = choices.map((c) => `<option value="${c.id}">${h(c.title)}</option>`).join("\n");
+  const categories = CATEGORIES.map((c) => `<option value="${c.slug}">${h(c.name)}</option>`).join("\n");
   const form = `<section>
 <h2>Attach URL to story</h2>
-<p class="hint">Adds the link as a "more" or "commentary" item of the chosen story. A link already in the feed is moved rather than duplicated; anything else becomes a hand-added item, titled as given or from the page's title tag (sites like X may refuse that fetch).</p>
+<p class="hint">Adds the link as a "more" or "commentary" item of the chosen story, or as its own entry with "(new story)" and a category. A link already in the feed is moved rather than duplicated; anything else becomes a hand-added item, titled as given or from the page's title tag (sites like X may refuse that fetch).</p>
 <form class="attach" method="post" action="/pending/attach">
 <label>URL <input type="url" name="url" required placeholder="https://"></label>
 <label>Title <input type="text" name="title" maxlength="${MAX_TITLE}" placeholder="from the page if empty"></label>
-<label>Story <select name="story" required>${options}</select></label>
+<label>Story <select name="story" required>${options}<option value="new">(new story)</option></select></label>
 <label>Role <select name="role"><option value="more">more</option><option value="commentary">commentary</option></select></label>
+<label>Category, for a new story <select name="category">${categories}</select></label>
 <button class="pill" type="submit">Attach</button>
 </form>
 </section>`;
@@ -164,26 +167,32 @@ function urlForms(url: string): string[] {
 }
 
 /**
- * POST /pending/attach with url, story, role and optional title: put the
- * link in the story. An existing item with that URL is moved (its primary
- * cannot be taken from a story that still has other items); otherwise a
- * "manual" item is created in the primary's category, titled as given or
- * from the page.
+ * POST /pending/attach with url, story, role, optional title, and a category
+ * when story is "new": put the link in the story, or give it one of its own.
+ * An existing item with that URL is moved (its primary cannot be taken from
+ * a story that still has other items); otherwise a "manual" item is created,
+ * titled as given or from the page, in the primary's category or the chosen one.
  */
 export async function attachToStory(request: Request, env: Env): Promise<Response> {
   const form = await request.formData().catch(() => null);
   const url = String(form?.get("url") ?? "").trim();
-  const storyId = Number(form?.get("story"));
+  const storyField = String(form?.get("story") ?? "");
+  const storyId = Number(storyField);
   const role = String(form?.get("role") ?? "");
   const given = String(form?.get("title") ?? "").replace(/\s+/g, " ").trim();
+  const category = String(form?.get("category") ?? "");
+  const fresh = storyField === "new";
   if (!/^https?:\/\//.test(url) || !linkForm(url)) return new Response("Bad URL", { status: 400 });
-  if (!Number.isInteger(storyId) || storyId <= 0) return new Response("Bad story", { status: 400 });
+  if (!fresh && (!Number.isInteger(storyId) || storyId <= 0)) return new Response("Bad story", { status: 400 });
   if (role !== "more" && role !== "commentary") return new Response("Bad role", { status: 400 });
+  if (fresh && !isCategory(category)) return new Response("Bad category", { status: 400 });
 
-  const story = await env.DB.prepare(
-    "SELECT s.id, i.category FROM stories s JOIN items i ON i.id = s.primary_item_id WHERE s.id = ?"
-  ).bind(storyId).first<{ id: number; category: string }>();
-  if (!story) return new Response("No such story", { status: 404 });
+  const story = fresh
+    ? null
+    : await env.DB.prepare(
+        "SELECT s.id, i.category FROM stories s JOIN items i ON i.id = s.primary_item_id WHERE s.id = ?"
+      ).bind(storyId).first<{ id: number; category: string }>();
+  if (!fresh && !story) return new Response("No such story", { status: 404 });
 
   const now = new Date().toISOString();
   const existing = await findByUrl(env.DB, urlForms(url));
@@ -195,7 +204,8 @@ export async function attachToStory(request: Request, env: Env): Promise<Respons
         return new Response("That link is the primary of a story that still has other items; split those out first.", { status: 409 });
       }
     }
-    await joinStory(env.DB, existing.id, story.id, role, now);
+    if (story) await joinStory(env.DB, existing.id, story.id, role, now);
+    else if (existing.story_role !== "primary" || existing.story_id === null) await newStory(env.DB, existing.id, now);
     if (existing.status !== "published") {
       await env.DB.prepare("UPDATE items SET status = 'published' WHERE id = ?").bind(existing.id).run();
     }
@@ -203,14 +213,22 @@ export async function attachToStory(request: Request, env: Env): Promise<Respons
   }
 
   const title = given ? truncate(given, MAX_TITLE) : await fetchTitle(url);
-  await env.DB.batch([
-    env.DB.prepare(
-      `INSERT INTO items (key, url, title, description, source_id, source_type, category, published_at, fetched_at, status, story_id, story_role)
-       VALUES (?, ?, ?, '', ?, ?, ?, ?, ?, 'published', ?, ?)
-       ON CONFLICT(key) DO UPDATE SET story_id = excluded.story_id, story_role = excluded.story_role, status = 'published'`
-    ).bind(`manual:${linkForm(url)}`, url, title, MANUAL_SOURCE_ID, MANUAL_SOURCE_ID, story.category, now, now, story.id, role),
-    env.DB.prepare("UPDATE stories SET updated_at = ? WHERE id = ?").bind(now, story.id),
-  ]);
+  const key = `manual:${linkForm(url)}`;
+  const insert = env.DB.prepare(
+    `INSERT INTO items (key, url, title, description, source_id, source_type, category, published_at, fetched_at, status, story_id, story_role)
+     VALUES (?, ?, ?, '', ?, ?, ?, ?, ?, 'published', ?, ?)
+     ON CONFLICT(key) DO UPDATE SET story_id = excluded.story_id, story_role = excluded.story_role, status = 'published'`
+  );
+  if (story) {
+    await env.DB.batch([
+      insert.bind(key, url, title, MANUAL_SOURCE_ID, MANUAL_SOURCE_ID, story.category, now, now, story.id, role),
+      env.DB.prepare("UPDATE stories SET updated_at = ? WHERE id = ?").bind(now, story.id),
+    ]);
+    return back();
+  }
+  await insert.bind(key, url, title, MANUAL_SOURCE_ID, MANUAL_SOURCE_ID, category, now, now, null, "primary").run();
+  const row = await env.DB.prepare("SELECT id FROM items WHERE key = ?").bind(key).first<{ id: number }>();
+  if (row) await newStory(env.DB, row.id, now);
   return back();
 }
 
