@@ -61,7 +61,7 @@ export interface ScrapedSource extends Base {
   listUrl: string;
   baseUrl: string;
   /** key into PARSERS in fetch/scraped.ts */
-  parser: "consensus" | "pse" | "fe" | "terence" | "lightclient" | "optimism";
+  parser: "consensus" | "pse" | "fe" | "terence" | "lightclient" | "optimism" | "ricmoo";
 }
 
 export interface MarkdownSource extends Base {
@@ -297,6 +297,13 @@ export const SOURCES: Source[] = [
     id: "lightclient-blog", name: "lightclient blog", type: "scraped",
     listUrl: "https://lightclient.io/blog/", baseUrl: "https://lightclient.io", parser: "lightclient",
     category: "layer-1", trust: "auto",
+    kind: "blog",
+  },
+  {
+    // Hugo site with no feed; the home page lists posts with dates.
+    id: "ricmoo-blog", name: "RicMoo blog", type: "scraped",
+    listUrl: "https://blog.ricmoo.com/", baseUrl: "https://blog.ricmoo.com", parser: "ricmoo",
+    category: "developers", trust: "auto",
     kind: "blog",
   },
   {

@@ -152,7 +152,26 @@ function parseOptimismBlog(html: string): ScrapedEntry[] {
   return entries;
 }
 
+function parseRicmooBlog(html: string): ScrapedEntry[] {
+  // Hugo site with no feed. Each post:
+  //   <div class="title"><a href="SLUG/">Title</a></div><div class="date">September 14, 2026</div>
+  const itemRegex = /<div class="title"><a href="([^"]+)">([^<]+)<\/a><\/div>\s*<div class="date">([^<]+)<\/div>/g;
+  const entries: ScrapedEntry[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = itemRegex.exec(html)) !== null) {
+    const [, href, title, dateStr] = m;
+    entries.push({
+      href,
+      title: decodeEntities(title),
+      description: "",
+      published: new Date(`${dateStr} UTC`),
+    });
+  }
+  return entries;
+}
+
 export const PARSERS: Record<ScrapedSource["parser"], Parser> = {
+  ricmoo: parseRicmooBlog,
   optimism: parseOptimismBlog,
   consensus: parseConsensusBlog,
   pse: parsePseBlog,
