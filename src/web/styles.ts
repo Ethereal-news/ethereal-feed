@@ -100,6 +100,8 @@ td.muted,.muted{color:var(--muted)}
 .draft .pill{padding:.375rem .75rem}
 .draft .preview h3{font-size:1rem;margin:1.5rem 0 .5rem}
 .draft .preview h3:first-child{margin-top:.5rem}
+.draft .preview h4{font-size:.9375rem;font-weight:600;margin:1rem 0 .4rem}
+.draft .preview h3+h4{margin-top:.5rem}
 .draft .preview ul{margin:0;padding-left:1.25rem}
 .draft .preview li{margin:0 0 .375rem}
 .draft .preview li li{margin:.2rem 0 0;font-size:.9375rem}

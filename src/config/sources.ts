@@ -39,6 +39,10 @@ interface Base {
   kind: Kind;
   /** Human homepage. Defaults per type; see siteFor(). */
   site?: string;
+  /** Who ships it, as the newsletter writes it before the name: "ChainSafe Lodestar v1.48.0". */
+  org?: string;
+  /** The newsletter's word for it when more specific than `kind`, e.g. "fuzzer". */
+  kindLabel?: string;
   /**
    * Sources that belong to one project (a blog and the repo it announces
    * releases for). Items from the same group cluster into a story when they
@@ -316,17 +320,17 @@ export const SOURCES: Source[] = [
   },
 
   // ------------------------------------------------------- client releases
-  { id: "geth", name: "Geth", type: "release", owner: "ethereum", repo: "go-ethereum", category: "staking", trust: "auto", kind: "execution layer client" },
+  { id: "geth", org: "EF", name: "Geth", type: "release", owner: "ethereum", repo: "go-ethereum", category: "staking", trust: "auto", kind: "execution layer client" },
   { id: "erigon", group: "erigon", name: "Erigon", type: "release", owner: "erigontech", repo: "erigon", category: "staking", trust: "auto", kind: "execution layer client" },
   { id: "nethermind", name: "Nethermind", type: "release", owner: "NethermindEth", repo: "nethermind", category: "staking", trust: "auto", kind: "execution layer client" },
   { id: "besu", name: "Besu", type: "release", owner: "besu-eth", repo: "besu", category: "staking", trust: "auto", kind: "execution layer client" },
-  { id: "reth", name: "Reth", type: "release", owner: "paradigmxyz", repo: "reth", category: "staking", trust: "auto", kind: "execution layer client" },
-  { id: "ethrex", name: "Ethrex", type: "release", owner: "lambdaclass", repo: "ethrex", category: "staking", trust: "auto", kind: "execution layer client" },
-  { id: "prysm", name: "Prysm", type: "release", owner: "OffchainLabs", repo: "prysm", category: "staking", trust: "auto", kind: "consensus layer client" },
-  { id: "lighthouse", group: "sigma-prime", name: "Lighthouse", type: "release", owner: "sigp", repo: "lighthouse", category: "staking", trust: "auto", kind: "consensus layer client" },
-  { id: "teku", name: "Teku", type: "release", owner: "ConsenSys", repo: "teku", category: "staking", trust: "auto", kind: "consensus layer client" },
-  { id: "nimbus", name: "Nimbus", type: "release", owner: "status-im", repo: "nimbus-eth2", category: "staking", trust: "auto", kind: "consensus layer client" },
-  { id: "lodestar", group: "chainsafe", name: "Lodestar", type: "release", owner: "ChainSafe", repo: "lodestar", category: "staking", trust: "auto", kind: "consensus layer client" },
+  { id: "reth", org: "Paradigm", name: "Reth", type: "release", owner: "paradigmxyz", repo: "reth", category: "staking", trust: "auto", kind: "execution layer client" },
+  { id: "ethrex", org: "Lambda", name: "Ethrex", type: "release", owner: "lambdaclass", repo: "ethrex", category: "staking", trust: "auto", kind: "execution layer client" },
+  { id: "prysm", org: "Offchain", name: "Prysm", type: "release", owner: "OffchainLabs", repo: "prysm", category: "staking", trust: "auto", kind: "consensus layer client" },
+  { id: "lighthouse", org: "Sigma Prime", group: "sigma-prime", name: "Lighthouse", type: "release", owner: "sigp", repo: "lighthouse", category: "staking", trust: "auto", kind: "consensus layer client" },
+  { id: "teku", org: "Consensys", name: "Teku", type: "release", owner: "ConsenSys", repo: "teku", category: "staking", trust: "auto", kind: "consensus layer client" },
+  { id: "nimbus", org: "Status", name: "Nimbus", type: "release", owner: "status-im", repo: "nimbus-eth2", category: "staking", trust: "auto", kind: "consensus layer client" },
+  { id: "lodestar", org: "ChainSafe", group: "chainsafe", name: "Lodestar", type: "release", owner: "ChainSafe", repo: "lodestar", category: "staking", trust: "auto", kind: "consensus layer client" },
   { id: "grandine", name: "Grandine", type: "release", owner: "grandinetech", repo: "grandine", category: "staking", trust: "auto", kind: "consensus layer client" },
   {
     // Not a client; releases are always alpha/beta so prereleases are kept.
@@ -339,19 +343,19 @@ export const SOURCES: Source[] = [
   // ------------------------------------------------------- dev tool releases
   { id: "halmos", name: "Halmos", type: "release", owner: "a16z", repo: "halmos", category: "developers", trust: "auto", kind: "security" },
   { id: "ape", group: "apeworx", name: "Ape", type: "release", owner: "ApeWorX", repo: "ape", category: "developers", trust: "auto", kind: "framework" },
-  { id: "equivm", group: "argot", name: "EquiVM", type: "release", owner: "argotorg", repo: "EquiVM", category: "developers", trust: "auto", kind: "language" },
-  { id: "fe", group: "fe", name: "Fe", type: "release", owner: "argotorg", repo: "fe", category: "developers", trust: "auto", kind: "language" },
-  { id: "hevm", group: "argot", name: "hevm", type: "release", owner: "argotorg", repo: "hevm", category: "developers", trust: "auto", kind: "security" },
+  { id: "equivm", kindLabel: "Lean 4 framework", org: "Argot Collective", group: "argot", name: "EquiVM", type: "release", owner: "argotorg", repo: "EquiVM", category: "developers", trust: "auto", kind: "language" },
+  { id: "fe", org: "Argot Collective", group: "fe", name: "Fe", type: "release", owner: "argotorg", repo: "fe", category: "developers", trust: "auto", kind: "language" },
+  { id: "hevm", kindLabel: "symbolic analysis", group: "argot", name: "hevm", type: "release", owner: "argotorg", repo: "hevm", category: "developers", trust: "auto", kind: "security" },
   { id: "revm", name: "Revm", type: "release", owner: "bluealloy", repo: "revm", category: "developers", trust: "auto", kind: "library" },
   { id: "evmole", name: "EVMole", type: "release", owner: "cdump", repo: "evmole", category: "developers", trust: "auto", kind: "security" },
-  { id: "echidna", name: "Echidna", type: "release", owner: "crytic", repo: "echidna", category: "developers", trust: "auto", kind: "security" },
-  { id: "slither", name: "Slither", type: "release", owner: "crytic", repo: "slither", category: "developers", trust: "auto", kind: "security" },
+  { id: "echidna", kindLabel: "fuzzer", name: "Echidna", type: "release", owner: "crytic", repo: "echidna", category: "developers", trust: "auto", kind: "security" },
+  { id: "slither", kindLabel: "static analyzer", name: "Slither", type: "release", owner: "crytic", repo: "slither", category: "developers", trust: "auto", kind: "security" },
   { id: "solc-select", name: "solc-select", type: "release", owner: "crytic", repo: "solc-select", category: "developers", trust: "auto", kind: "language" },
   { id: "mythril", name: "Mythril", type: "release", owner: "ConsenSysDiligence", repo: "mythril", category: "developers", trust: "auto", kind: "security" },
   { id: "foundry-devops", name: "Foundry DevOps", type: "release", owner: "Cyfrin", repo: "foundry-devops", category: "developers", trust: "auto", kind: "developer tool" },
   { id: "headlong", name: "Headlong", type: "release", owner: "esaulpaugh", repo: "headlong", category: "developers", trust: "auto", kind: "client library" },
   { id: "ethers-js", name: "Ethers.js", type: "release", owner: "ethers-io", repo: "ethers.js", category: "developers", trust: "auto", kind: "client library" },
-  { id: "ethereumjs-monorepo", name: "EthereumJS Monorepo", type: "release", owner: "ethereumjs", repo: "ethereumjs-monorepo", category: "developers", trust: "auto", kind: "client library", tagFilter: /^@ethereumjs\/vm@/ },
+  { id: "ethereumjs-monorepo", kindLabel: "libraries", name: "EthereumJS Monorepo", type: "release", owner: "ethereumjs", repo: "ethereumjs-monorepo", category: "developers", trust: "auto", kind: "client library", tagFilter: /^@ethereumjs\/vm@/ },
   { id: "ethstaker-deposit-cli", group: "ethstaker", name: "EthStaker Deposit CLI", type: "release", owner: "ethstaker", repo: "ethstaker-deposit-cli", category: "developers", trust: "auto", kind: "developer tool" },
   { id: "voltaire", name: "Voltaire", type: "release", owner: "evmts", repo: "voltaire", category: "developers", trust: "auto", kind: "client library" },
   { id: "forge-std", name: "Forge Std", type: "release", owner: "foundry-rs", repo: "forge-std", category: "developers", trust: "auto", kind: "framework" },
@@ -362,19 +366,19 @@ export const SOURCES: Source[] = [
   { id: "gas-cost-estimator", name: "Gas Cost Estimator", type: "release", owner: "imapp-pl", repo: "gas-cost-estimator", category: "developers", trust: "auto", kind: "developer tool" },
   { id: "heimdall", name: "Heimdall", type: "release", owner: "Jon-Becker", repo: "heimdall-rs", category: "developers", trust: "auto", kind: "security" },
   { id: "nethereum", name: "Nethereum", type: "release", owner: "Nethereum", repo: "Nethereum", category: "developers", trust: "auto", kind: "client library" },
-  { id: "hardhat", group: "hardhat", name: "Hardhat", type: "release", owner: "NomicFoundation", repo: "hardhat", category: "developers", trust: "auto", kind: "framework", tagFilter: /^hardhat@/ },
-  { id: "solx", name: "solx", type: "release", owner: "NomicFoundation", repo: "solx", category: "developers", trust: "auto", kind: "language" },
+  { id: "hardhat", org: "Nomic Foundation", group: "hardhat", name: "Hardhat", type: "release", owner: "NomicFoundation", repo: "hardhat", category: "developers", trust: "auto", kind: "framework", tagFilter: /^hardhat@/ },
+  { id: "solx", org: "Nomic Foundation", name: "solx", type: "release", owner: "NomicFoundation", repo: "solx", category: "developers", trust: "auto", kind: "language" },
   { id: "openzeppelin-contracts", name: "OpenZeppelin Contracts", type: "release", owner: "OpenZeppelin", repo: "openzeppelin-contracts", category: "developers", trust: "auto", kind: "library" },
   { id: "otterscan", name: "Otterscan", type: "release", owner: "otterscan", repo: "otterscan", category: "developers", trust: "auto", kind: "developer tool" },
-  { id: "solar", name: "Solar", type: "release", owner: "paradigmxyz", repo: "solar", category: "developers", trust: "auto", kind: "language" },
+  { id: "solar", org: "Paradigm", name: "Solar", type: "release", owner: "paradigmxyz", repo: "solar", category: "developers", trust: "auto", kind: "language" },
   { id: "plank", name: "Plank", type: "release", owner: "plankevm", repo: "plank-monorepo", category: "developers", trust: "auto", kind: "developer tool" },
-  { id: "micro-eth-signer", name: "micro-eth-signer", type: "release", owner: "paulmillr", repo: "micro-eth-signer", category: "developers", trust: "auto", kind: "client library" },
-  { id: "noble-ciphers", name: "noble-ciphers", type: "release", owner: "paulmillr", repo: "noble-ciphers", category: "developers", trust: "auto", kind: "library" },
+  { id: "micro-eth-signer", org: "Paul Miller", name: "micro-eth-signer", type: "release", owner: "paulmillr", repo: "micro-eth-signer", category: "developers", trust: "auto", kind: "client library" },
+  { id: "noble-ciphers", org: "Paul Miller", name: "noble-ciphers", type: "release", owner: "paulmillr", repo: "noble-ciphers", category: "developers", trust: "auto", kind: "library" },
   { id: "snekmate", name: "Snekmate", type: "release", owner: "pcaversaccio", repo: "snekmate", category: "developers", trust: "auto", kind: "library" },
   { id: "xdeployer", name: "xdeployer", type: "release", owner: "pcaversaccio", repo: "xdeployer", category: "developers", trust: "auto", kind: "developer tool" },
   { id: "vscode-solidity-inspector", name: "VSCode Solidity Inspector", type: "release", owner: "PraneshASP", repo: "vscode-solidity-inspector", category: "developers", trust: "auto", kind: "developer tool" },
   { id: "prettier-solidity", name: "Prettier Solidity", type: "release", owner: "prettier-solidity", repo: "prettier-plugin-solidity", category: "developers", trust: "auto", kind: "developer tool" },
-  { id: "solhint", name: "Solhint", type: "release", owner: "protofire", repo: "solhint", category: "developers", trust: "auto", kind: "security" },
+  { id: "solhint", kindLabel: "Solidity linter", org: "Protofire", name: "Solhint", type: "release", owner: "protofire", repo: "solhint", category: "developers", trust: "auto", kind: "security" },
   { id: "semaphore", name: "Semaphore", type: "release", owner: "semaphore-protocol", repo: "semaphore", category: "developers", trust: "auto", kind: "library" },
   { id: "solidity", group: "solidity", name: "Solidity", type: "release", owner: "argotorg", repo: "solidity", category: "developers", trust: "auto", kind: "language" },
   { id: "sourcify", group: "sourcify", name: "Sourcify", type: "release", owner: "ethereum", repo: "sourcify", category: "developers", trust: "auto", kind: "contract verification", tagFilter: /^sourcify-server@/ },
