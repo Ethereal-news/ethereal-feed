@@ -26,11 +26,10 @@ import { linkForm } from "./newsletter";
  *      release word or a version in its title or description). A blog post
  *      that merely lands in the same week as a release stays on its own.
  *   4. Forkcast EIP status changes ("EIP-7645 (...) is now Declined for
- *      Hegota") join the nearest AllCoreDevs Execution or Consensus call
- *      recap published up to ACD_WINDOW_HOURS earlier: that is the call the
- *      decision was made on. Forkcast entries carry no body or links, so the
- *      other rules cannot see the connection. Testing calls and breakouts
- *      do not anchor.
+ *      Hegota") join the nearest AllCoreDevs Execution, Consensus or Testing
+ *      call recap published up to ACD_WINDOW_HOURS earlier: that is the call
+ *      the decision was made on. Forkcast entries carry no body or links, so
+ *      the other rules cannot see the connection. Breakouts do not anchor.
  *
  * A joining item is "more"; then the story's primary is recomputed: blog
  * post (not a bug post) > release > forum topic > other, ties to the
@@ -52,7 +51,7 @@ const ANNOUNCEMENT_RE = /\b(releas(?:e|ed|es|ing)|announc(?:e|ed|es|ing)|is out|
 
 const FORKCAST = "forkcast";
 const STATUS_CHANGE_RE = /^(?:EIP|ERC|RIP)-\d+ \(.*\) is now /;
-const ACD_CALL_RE = /^AllCoreDevs - (?:Execution|Consensus) #\d+ call published$/;
+const ACD_CALL_RE = /^AllCoreDevs - (?:Execution|Consensus|Testing) #\d+ call published$/;
 
 export type StoryRole = "primary" | "more" | "commentary";
 
@@ -102,7 +101,7 @@ export function isStatusChange(row: Pick<Row, "source_id" | "title">): boolean {
   return row.source_id === FORKCAST && STATUS_CHANGE_RE.test(row.title);
 }
 
-/** A Forkcast AllCoreDevs Execution or Consensus call recap. */
+/** A Forkcast AllCoreDevs Execution, Consensus or Testing call recap. */
 export function isAcdCall(row: Pick<Row, "source_id" | "title">): boolean {
   return row.source_id === FORKCAST && ACD_CALL_RE.test(row.title);
 }
