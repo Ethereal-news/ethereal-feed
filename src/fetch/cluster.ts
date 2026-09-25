@@ -30,6 +30,11 @@ import { linkForm } from "./newsletter";
  *      call recap published up to ACD_WINDOW_HOURS earlier: that is the call
  *      the decision was made on. Forkcast entries carry no body or links, so
  *      the other rules cannot see the connection. Breakouts do not anchor.
+ *      Forkcast can list the status changes a fetch or more before the
+ *      recap, so a new recap also adopts status changes published up to
+ *      ACD_WINDOW_HOURS after it that still sit alone in their own story;
+ *      the emptied story is deleted. This is the one case where an
+ *      already-clustered item moves.
  *
  * A joining item is "more"; then the story's primary is recomputed: blog
  * post (not a bug post) > release > forum topic > other, ties to the
@@ -275,6 +280,36 @@ export async function clusterNew(env: Env, now = new Date().toISOString()): Prom
     stmts.push(db.prepare("UPDATE stories SET primary_item_id = ?, updated_at = ? WHERE id = ?").bind(best.id, now, storyId));
   };
 
+  /** Rule 4 in reverse: move lone status changes into a newly clustered recap's story. */
+  const adoptStatusChanges = async (call: Row) => {
+    const storyId = call.story_id!;
+    const at = new Date(call.published_at).getTime();
+    const hi = new Date(at + ACD_WINDOW_HOURS * 3_600_000).toISOString();
+    const lone = await selectRows(
+      db,
+      `source_id = ? AND status = 'published' AND published_at >= ? AND published_at <= ?
+         AND story_id IS NOT NULL AND story_id != ?
+         AND NOT EXISTS (SELECT 1 FROM items o WHERE o.story_id = items.story_id AND o.id != items.id)`,
+      [FORKCAST, call.published_at, hi, storyId]
+    );
+    let moved = 0;
+    for (const row of lone.filter(isStatusChange)) {
+      // Skip rows this run already placed in a story with company.
+      const mine = pool.find((p) => p.id === row.id);
+      if (mine && pool.some((p) => p.story_id === mine.story_id && p.id !== mine.id)) continue;
+      const oldStory = mine?.story_id ?? row.story_id!;
+      stmts.push(
+        db.prepare("UPDATE items SET story_id = ?, story_role = 'more' WHERE id = ?").bind(storyId, row.id),
+        db.prepare("DELETE FROM stories WHERE id = ?").bind(oldStory)
+      );
+      if (mine) Object.assign(mine, { story_id: storyId, story_role: "more" });
+      else addToPool({ ...row, story_id: storyId, story_role: "more" });
+      moved++;
+    }
+    if (moved) await recomputePrimary(storyId);
+    return moved;
+  };
+
   for (const item of fresh) {
     let candidates: Row[] = [];
     for (const rule of [rule1, rule2, rule3, rule4]) {
@@ -285,15 +320,19 @@ export async function clusterNew(env: Env, now = new Date().toISOString()): Prom
 
     if (!match) {
       const storyId = await newStory(db, item.id, now);
-      addToPool({ ...item, story_id: storyId, story_role: "primary" });
+      const row = { ...item, story_id: storyId, story_role: "primary" };
+      addToPool(row);
+      if (isAcdCall(item)) joined += await adoptStatusChanges(row);
       continue;
     }
 
     const storyId = match.story_id!;
     stmts.push(db.prepare("UPDATE items SET story_id = ?, story_role = 'more' WHERE id = ?").bind(storyId, item.id));
-    addToPool({ ...item, story_id: storyId, story_role: "more" });
+    const row = { ...item, story_id: storyId, story_role: "more" };
+    addToPool(row);
     await recomputePrimary(storyId);
     joined++;
+    if (isAcdCall(item)) joined += await adoptStatusChanges(row);
   }
 
   for (let i = 0; i < stmts.length; i += 100) await db.batch(stmts.slice(i, i + 100));
