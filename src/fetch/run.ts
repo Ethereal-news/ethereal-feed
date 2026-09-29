@@ -208,6 +208,32 @@ function statusFor(source: Source, item: RawItem): "published" | "pending" | "hi
   return "published";
 }
 
+/** Slack before a new item counts as backdated; covers date-only stamps (midnight UTC). */
+const BACKDATE_SLACK_MS = 86_400_000;
+
+/**
+ * A new item dated well before the source's last successful run wasn't in the
+ * source then, so it was backdated (e.g. an EF blog post whose URL and pubDate
+ * carry the drafting date). Stamp it with this fetch so it lands as new instead
+ * of buried days down. A source with no successful run keeps its dates, so a
+ * newly added source doesn't bunch its backlog at "now"; an outage doesn't
+ * trip this either, since items from it postdate the last good run.
+ */
+async function restampBackdated(
+  env: Env, source: Source, items: RawItem[], known: Set<string>, fetchedAt: string
+): Promise<RawItem[]> {
+  const last = await env.DB.prepare(
+    "SELECT max(run_at) AS run_at FROM fetch_runs WHERE source_id = ? AND ok = 1"
+  ).bind(source.id).first<{ run_at: string | null }>();
+  if (!last?.run_at) return items;
+  const before = Date.parse(last.run_at) - BACKDATE_SLACK_MS;
+  return items.map((i) => {
+    if (known.has(i.key) || Date.parse(i.published_at) >= before) return i;
+    console.log(`backdated: ${source.id} "${i.title}" ${i.published_at} -> ${fetchedAt}`);
+    return { ...i, published_at: fetchedAt };
+  });
+}
+
 async function upsertItems(env: Env, source: Source, items: RawItem[], fetchedAt: string): Promise<number> {
   if (items.length === 0) return 0;
 
@@ -218,6 +244,7 @@ async function upsertItems(env: Env, source: Source, items: RawItem[], fetchedAt
   ).bind(...keys).all<{ key: string }>();
   const known = new Set(existing.results.map((r) => r.key));
   const inserted = keys.filter((k) => !known.has(k)).length;
+  if (inserted) items = await restampBackdated(env, source, items, known, fetchedAt);
 
   const stmt = env.DB.prepare(`
     INSERT INTO items (key, url, title, description, source_id, source_type, category, author, author_name, version, prerelease, published_at, fetched_at, status)
