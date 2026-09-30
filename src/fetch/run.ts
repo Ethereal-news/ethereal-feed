@@ -208,6 +208,43 @@ function statusFor(source: Source, item: RawItem): "published" | "pending" | "hi
   return "published";
 }
 
+/**
+ * A feed can reissue a post under a new guid (Paragraph did for Base's
+ * Cobalt post), which would insert it twice. A new key whose URL matches
+ * exactly one existing row of the same source, and that row's key is gone
+ * from this response, is the same post: move the row to the new key so the
+ * upsert updates it. Returns the keys taken over.
+ */
+async function rekeyMoved(env: Env, source: Source, items: RawItem[], known: Set<string>): Promise<string[]> {
+  const urlCount = new Map<string, number>();
+  for (const i of items) urlCount.set(i.url, (urlCount.get(i.url) ?? 0) + 1);
+  const fresh = items.filter((i) => !known.has(i.key) && urlCount.get(i.url) === 1);
+  if (fresh.length === 0) return [];
+
+  const byUrl = new Map<string, { id: number; key: string }[]>();
+  for (let i = 0; i < fresh.length; i += 90) {
+    const chunk = fresh.slice(i, i + 90).map((f) => f.url);
+    const rows = await env.DB.prepare(
+      `SELECT id, key, url FROM items WHERE source_id = ? AND url IN (${chunk.map(() => "?").join(",")})`
+    ).bind(source.id, ...chunk).all<{ id: number; key: string; url: string }>();
+    for (const r of rows.results) byUrl.set(r.url, [...(byUrl.get(r.url) ?? []), r]);
+  }
+  const inResponse = new Set(items.map((i) => i.key));
+
+  const moves: { id: number; from: string; to: string }[] = [];
+  for (const i of fresh) {
+    const matches = byUrl.get(i.url) ?? [];
+    if (matches.length === 1 && !inResponse.has(matches[0].key)) {
+      moves.push({ id: matches[0].id, from: matches[0].key, to: i.key });
+    }
+  }
+  if (moves.length === 0) return [];
+  const stmt = env.DB.prepare("UPDATE items SET key = ? WHERE id = ?");
+  await env.DB.batch(moves.map((m) => stmt.bind(m.to, m.id)));
+  for (const m of moves) console.log(`rekeyed: ${source.id} item ${m.id} ${m.from} -> ${m.to}`);
+  return moves.map((m) => m.to);
+}
+
 /** Slack before a new item counts as backdated; covers date-only stamps (midnight UTC). */
 const BACKDATE_SLACK_MS = 86_400_000;
 
@@ -243,6 +280,7 @@ async function upsertItems(env: Env, source: Source, items: RawItem[], fetchedAt
     `SELECT key FROM items WHERE key IN (${keys.map(() => "?").join(",")})`
   ).bind(...keys).all<{ key: string }>();
   const known = new Set(existing.results.map((r) => r.key));
+  for (const key of await rekeyMoved(env, source, items, known)) known.add(key);
   const inserted = keys.filter((k) => !known.has(k)).length;
   if (inserted) items = await restampBackdated(env, source, items, known, fetchedAt);
 
