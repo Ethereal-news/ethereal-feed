@@ -387,8 +387,8 @@ export const SOURCES: Source[] = [
   { id: "zerokit", name: "ZeroKit", type: "release", owner: "vacp2p", repo: "zerokit", category: "developers", trust: "auto", kind: "library" },
   { id: "solady", name: "Solady", type: "release", owner: "Vectorized", repo: "solady", category: "developers", trust: "auto", kind: "library" },
   { id: "vyper", group: "vyper", name: "Vyper", type: "release", owner: "vyperlang", repo: "vyper", category: "developers", trust: "auto", kind: "language" },
-  { id: "viem", name: "Viem", type: "release", owner: "wevm", repo: "viem", category: "developers", trust: "auto", kind: "client library", tagFilter: /^viem@/ },
-  { id: "wagmi", name: "Wagmi", type: "release", owner: "wevm", repo: "wagmi", category: "developers", trust: "auto", kind: "client library", tagFilter: /^wagmi@/ },
+  { id: "viem", name: "Viem", type: "release", owner: "wevm", repo: "viem", category: "developers", trust: "auto", kind: "client library", tagFilter: /^viem@\d+\.\d+\.0$/ },
+  { id: "wagmi", name: "Wagmi", type: "release", owner: "wevm", repo: "wagmi", category: "developers", trust: "auto", kind: "client library", tagFilter: /^wagmi@\d+\.\d+\.0$/ },
 
   {
     // No feed; the blog index is scraped (see fetch/scraped.ts).
