@@ -101,8 +101,8 @@ ${o.private ? '<meta name="robots" content="noindex, nofollow">\n' : ""}<script>
 <style>${CSS}</style>
 </head>
 <body>
-<div class="wrap">
 <header>
+<div class="head">
 <div class="bar">
 <div class="brand">
 <a class="home" href="https://ethereal.news">${LOGO}Ethereal news</a>
@@ -118,7 +118,9 @@ ${o.private ? '<meta name="robots" content="noindex, nofollow">\n' : ""}<script>
 <nav class="cats" aria-label="Categories">
 ${cats}
 </nav>
+</div>
 </header>
+<div class="wrap">
 <main>
 ${o.body}
 </main>

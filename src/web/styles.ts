@@ -17,10 +17,11 @@ body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 -apple-system,B
 a{color:inherit;text-decoration:none}
 main a:hover{text-decoration:underline}
 svg{display:block}
-.wrap{max-width:640px;margin:0 auto;padding:1rem .75rem 2.5rem}
+.wrap{max-width:640px;margin:0 auto;padding:1.25rem .75rem 2.5rem}
 
-/* header */
-header{margin-bottom:1.25rem}
+/* header: pinned full-width bar like ethereal.news, translucent page colour with a light blur behind */
+header{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 75%,transparent);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.head{max-width:640px;margin:0 auto;padding:1rem .75rem .75rem}
 .bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem 1.5rem;min-height:2.5rem}
 /* wordmark: logo + "Ethereal news" (semibold, current colour -> full on hover), then a muted "| feed" */
 .brand{display:flex;align-items:center;gap:.5rem;white-space:nowrap}
