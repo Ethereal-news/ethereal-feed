@@ -49,6 +49,12 @@ interface Base {
    * share a version or package token; see fetch/cluster.ts.
    */
   group?: string;
+  /**
+   * Trust item dates even when an item turns up days after it: the source
+   * dates posts truthfully but adds them to its feed late, so the fetch
+   * restamp for backdated items (fetch/run.ts) would misdate them.
+   */
+  keepDates?: boolean;
 }
 
 export interface RssSource extends Base {
@@ -262,6 +268,8 @@ export const SOURCES: Source[] = [
     url: "https://ethlabs.org/writings/feed.xml",
     category: "layer-1", trust: "auto",
     kind: "blog",
+    // Weekly updates can reach the feed days after their (on-page) date.
+    keepDates: true,
   },
   {
     id: "vyper-blog", group: "vyper", name: "Vyper blog", type: "rss",

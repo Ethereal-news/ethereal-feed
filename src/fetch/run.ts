@@ -254,7 +254,8 @@ const BACKDATE_SLACK_MS = 86_400_000;
  * carry the drafting date). Stamp it with this fetch so it lands as new instead
  * of buried days down. A source with no successful run keeps its dates, so a
  * newly added source doesn't bunch its backlog at "now"; an outage doesn't
- * trip this either, since items from it postdate the last good run.
+ * trip this either, since items from it postdate the last good run. Sources
+ * marked keepDates are skipped.
  */
 async function restampBackdated(
   env: Env, source: Source, items: RawItem[], known: Set<string>, fetchedAt: string
@@ -282,7 +283,7 @@ async function upsertItems(env: Env, source: Source, items: RawItem[], fetchedAt
   const known = new Set(existing.results.map((r) => r.key));
   for (const key of await rekeyMoved(env, source, items, known)) known.add(key);
   const inserted = keys.filter((k) => !known.has(k)).length;
-  if (inserted) items = await restampBackdated(env, source, items, known, fetchedAt);
+  if (inserted && !source.keepDates) items = await restampBackdated(env, source, items, known, fetchedAt);
 
   const stmt = env.DB.prepare(`
     INSERT INTO items (key, url, title, description, source_id, source_type, category, author, author_name, version, prerelease, published_at, fetched_at, status)
