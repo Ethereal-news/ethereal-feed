@@ -36,6 +36,12 @@ import { linkForm } from "./newsletter";
  *      the emptied story is deleted. This is the one case where an
  *      already-clustered item moves.
  *
+ * Whatever the rule, two releases only share a story when they come from the
+ * same source or config `group`, and two releases of one source only when
+ * they are on the same major.minor line: Nimbus v26.9.0 is not Besu 26.9.0,
+ * and Ethrex v29.0.0 notes that mention v28.0.0 are still a new release.
+ * Patch releases (Foundry 1.8.1 after 1.8.0) still join their line's story.
+ *
  * A joining item is "more"; then the story's primary is recomputed: blog
  * post (not a bug post) > release > forum topic > other, ties to the
  * earliest published. Forum topics that are not primary are "commentary".
@@ -67,13 +73,14 @@ export interface Row {
   description: string;
   source_id: string;
   source_type: string;
+  version: string | null;
   status: string;
   published_at: string;
   story_id: number | null;
   story_role: string;
 }
 
-const ROW_COLS = "id, url, title, description, source_id, source_type, status, published_at, story_id, story_role";
+const ROW_COLS = "id, url, title, description, source_id, source_type, version, status, published_at, story_id, story_role";
 
 const VERSION_RE = /\bv?\d+\.\d+(?:\.\d+)?\b/g;
 const PACKAGE_RE = /\b[a-z][a-z0-9-]*-[a-z0-9-]+\b/g;
@@ -114,6 +121,18 @@ export function isAcdCall(row: Pick<Row, "source_id" | "title">): boolean {
 /** A release passes as itself; anything else must read like a release announcement. */
 export function announcesRelease(row: Pick<Row, "source_type" | "title" | "description">): boolean {
   return row.source_type === "release" || ANNOUNCEMENT_RE.test(`${row.title} ${row.description}`);
+}
+
+/** Major.minor of a release version ("26.9.1" -> "26.9", "1.7.0-beta.2" -> "1.7"); the whole string when it has no dot. */
+export function releaseLine(version: string): string {
+  return version.match(/^\d+\.\d+/)?.[0] ?? version;
+}
+
+/** Two releases that are separate news: unrelated projects, or one project on different release lines. */
+export function distinctReleases(a: Row, b: Row): boolean {
+  if (a.source_type !== "release" || b.source_type !== "release") return false;
+  if (a.source_id !== b.source_id) return !sameGroup(a, b);
+  return !!a.version && !!b.version && releaseLine(a.version) !== releaseLine(b.version);
 }
 
 /** Lower is better: blog post, release, forum topic, AllCoreDevs call recap, anything else. */
@@ -313,7 +332,7 @@ export async function clusterNew(env: Env, now = new Date().toISOString()): Prom
   for (const item of fresh) {
     let candidates: Row[] = [];
     for (const rule of [rule1, rule2, rule3, rule4]) {
-      candidates = rule(item).filter((row) => row.id !== item.id && row.story_id !== null);
+      candidates = rule(item).filter((row) => row.id !== item.id && row.story_id !== null && !distinctReleases(item, row));
       if (candidates.length) break;
     }
     const match = candidates.sort(newestFirst)[0];
