@@ -62,6 +62,8 @@ h2.day:first-child{margin-top:.25rem}
 .item .more{font-size:.75rem;color:var(--muted);line-height:1.6}
 .item .more .lbl{letter-spacing:.02em}
 .item .more a:hover{color:var(--fg)}
+/* the latest newsletter issue: an ordinary entry whose subscribe link reads at full colour */
+.item.house .m a.sub{color:var(--fg);font-weight:600}
 .empty{color:var(--muted)}
 .pager{display:flex;justify-content:space-between;gap:1rem;font-size:.8125rem;color:var(--muted);margin:1.5rem 0 0}
 
