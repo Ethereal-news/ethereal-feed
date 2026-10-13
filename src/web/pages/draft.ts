@@ -13,8 +13,8 @@ import { parseDay } from "./day";
  * Lines follow the issue's house style: org before a release, its version
  * without the raw tag, one bullet per source, Forkcast status changes grouped
  * under their All core devs call. The page shows a rendered preview; Copy
- * puts the markdown on the clipboard and /draft.md serves it raw. Unlisted;
- * no-store.
+ * puts the markdown on the clipboard and /draft.md serves it raw. Items an
+ * issue already linked are left out. Unlisted; no-store.
  */
 
 /**
@@ -36,8 +36,8 @@ function mdText(s: string): string {
 // ------------------------------------------------------------------ document
 // The draft is built once as a small tree, then written as markdown or HTML.
 
-/** Inline content: text, a link, or the "already in an issue" marker. */
-type Seg = string | { text: string; url: string } | { issue: true };
+/** Inline content: text or a link. */
+type Seg = string | { text: string; url: string };
 
 /** A bullet and its sub-bullets. */
 interface Node {
@@ -205,7 +205,7 @@ function statusChange(item: ItemRow): StatusChange | null {
  *     * 7 EIPs [Declined for Inclusion](…#declined-for-inclusion) (DFI):
  *       * [EIP8146](…) block access list sidecars, [EIP8237](…) …
  */
-function statusNodes(changes: StatusChange[], inIssue: (i: ItemRow) => boolean): Node[] {
+function statusNodes(changes: StatusChange[]): Node[] {
   const forks = new Map<string, StatusChange[]>();
   for (const c of changes) forks.set(c.fork, [...(forks.get(c.fork) ?? []), c]);
 
@@ -219,19 +219,16 @@ function statusNodes(changes: StatusChange[], inIssue: (i: ItemRow) => boolean):
     const stageNodes = stages.map((stage) => {
       const eips = list.filter((c) => c.stage === stage).sort((a, b) => a.eip.localeCompare(b.eip, "en", { numeric: true }));
       const info = STAGES[stage] ?? { label: stage[0].toUpperCase() + stage.slice(1), anchor: stage };
-      const allIn = eips.every((c) => inIssue(c.item));
       const line: Seg[] = [];
       eips.forEach((c, i) => {
         if (i > 0) line.push(", ");
         line.push(link(c.eip, c.item.url), ` ${c.name}`);
-        if (!allIn && inIssue(c.item)) line.push({ issue: true });
       });
       const head: Seg[] = [
         `${eips.length} ${stage === "proposed" ? "new " : ""}EIP${eips.length === 1 ? "" : "s"} `,
         link(info.label, `${upgrade}#${info.anchor}`),
         `${info.abbr ? ` (${info.abbr})` : ""}:`,
       ];
-      if (allIn) head.push({ issue: true });
       return node(head, [node(line)]);
     });
     const name = known?.name ?? fork[0].toUpperCase() + fork.slice(1);
@@ -243,12 +240,11 @@ function statusNodes(changes: StatusChange[], inIssue: (i: ItemRow) => boolean):
 // ------------------------------------------------------------------ bullets
 
 interface Ctx {
-  inIssue: (i: ItemRow) => boolean;
   earlier: Map<Story, ItemRow[]>;
 }
 
 /** One item in house style. `client` swaps the kind for the stated upgrade priority. */
-function itemNode(item: ItemRow, ctx: Ctx, client = false): Node {
+function itemNode(item: ItemRow, client = false): Node {
   const source = SOURCE_BY_ID[item.source_id];
   const forum = source?.type === "discourse";
   const segs: Seg[] = [];
@@ -271,21 +267,19 @@ function itemNode(item: ItemRow, ctx: Ctx, client = false): Node {
     if (paren) segs.push(` (${paren})`);
     if (item.description) segs.push(`: ${item.description}`);
   }
-  if (ctx.inIssue(item)) segs.push({ issue: true });
   return node(segs);
 }
 
 /** A story: the primary, its other items beneath, then any collapsed earlier releases. */
 function storyNode(story: Story, ctx: Ctx, client = false): Node {
-  const n = itemNode(story.primary, ctx, client);
-  n.children = storyItems(story).slice(1).map((i) => itemNode(i, ctx));
+  const n = itemNode(story.primary, client);
+  n.children = storyItems(story).slice(1).map((i) => itemNode(i));
   const older = ctx.earlier.get(story);
   if (older?.length) {
     const segs: Seg[] = ["Earlier: "];
     older.forEach((i, idx) => {
       if (idx > 0) segs.push(", ");
       segs.push(link(releaseVersion(releaseTag(i)), i.url));
-      if (ctx.inIssue(i)) segs.push({ issue: true });
     });
     n.children.push(node(segs));
   }
@@ -293,15 +287,14 @@ function storyNode(story: Story, ctx: Ctx, client = false): Node {
 }
 
 /** "#### All core devs - consensus (ACDC) [#187](…)" with its status changes beneath. */
-function acdBlock(story: Story, ctx: Ctx): Block {
+function acdBlock(story: Story): Block {
   const m = acdCall(story.primary)!;
   const [word, abbr] = ACD_NAMES[m[1]];
   const others = storyItems(story).slice(1);
   const changes = others.map(statusChange).filter((c): c is StatusChange => c !== null);
   const plain = others.filter((i) => !statusChange(i));
   const heading: Seg[] = [`All core devs - ${word} (${abbr}) `, link(`#${m[2]}`, story.primary.url)];
-  if (ctx.inIssue(story.primary)) heading.push({ issue: true });
-  return { level: 4, heading, nodes: [...statusNodes(changes, ctx.inIssue), ...plain.map((i) => itemNode(i, ctx))] };
+  return { level: 4, heading, nodes: [...statusNodes(changes), ...plain.map((i) => itemNode(i))] };
 }
 
 /**
@@ -309,9 +302,9 @@ function acdBlock(story: Story, ctx: Ctx): Block {
  * empty ones omitted, with the All core devs block ahead of Layer 1 and
  * client releases grouped by layer at the end of Staking.
  */
-function blocks(stories: Story[], issues: Map<string, string>): Block[] {
+function blocks(stories: Story[]): Block[] {
   const { kept, earlier } = collapseReleases(stories);
-  const ctx: Ctx = { inIssue: (i) => issues.has(i.key), earlier };
+  const ctx: Ctx = { earlier };
   // The issue leads with the Execution or Consensus call, then Testing; oldest first within each.
   const testing = (s: Story) => Number(acdCall(s.primary)![1] === "Testing");
   const calls = kept
@@ -324,14 +317,14 @@ function blocks(stories: Story[], issues: Map<string, string>): Block[] {
   for (const c of CATEGORIES) {
     if (c.slug === ACD_BEFORE && calls.length) {
       out.push({ level: 3, heading: ["All core devs (main protocol calls)"], nodes: [] });
-      out.push(...calls.map((s) => acdBlock(s, ctx)));
+      out.push(...calls.map(acdBlock));
     }
     const own = rest.filter((s) => s.primary.category === c.slug);
     if (own.length === 0) continue;
 
     // Status changes that no call picked up are still grouped by upgrade.
     const loose = own.map((s) => statusChange(s.primary)).filter((x): x is StatusChange => x !== null);
-    const nodes: Node[] = statusNodes(loose, ctx.inIssue);
+    const nodes: Node[] = statusNodes(loose);
     const clients = new Map<string, Node[]>();
     for (const s of own) {
       if (statusChange(s.primary)) continue;
@@ -349,11 +342,29 @@ function blocks(stories: Story[], issues: Map<string, string>): Block[] {
   return out;
 }
 
+/**
+ * Stories with every item an issue already linked taken out. A story whose
+ * primary went out keeps its newer items under the first of them; one with
+ * nothing new is dropped.
+ */
+export function notInIssues(stories: Story[], issues: Map<string, string>): Story[] {
+  const out: Story[] = [];
+  for (const s of stories) {
+    const fresh = (i: ItemRow) => !issues.has(i.key);
+    const more = s.more.filter(fresh);
+    const commentary = s.commentary.filter(fresh);
+    if (fresh(s.primary)) out.push({ ...s, more, commentary });
+    else if (more.length) out.push({ ...s, primary: more[0], more: more.slice(1), commentary });
+    else if (commentary.length) out.push({ ...s, primary: commentary[0], more, commentary: commentary.slice(1) });
+  }
+  return out;
+}
+
 // ------------------------------------------------------------------ writers
 
 function mdInline(segs: Seg[]): string {
   return segs
-    .map((s) => (typeof s === "string" ? s : "issue" in s ? " ← issue" : `[${mdText(s.text)}](${s.url})`))
+    .map((s) => (typeof s === "string" ? s : `[${mdText(s.text)}](${s.url})`))
     .join("");
 }
 
@@ -362,8 +373,8 @@ function mdNode(n: Node, depth = 0): string {
 }
 
 /** The whole draft as markdown, the form an issue is written in. */
-export function draftMarkdown(stories: Story[], issues: Map<string, string>): string {
-  const parts = blocks(stories, issues).map((b) =>
+export function draftMarkdown(stories: Story[]): string {
+  const parts = blocks(stories).map((b) =>
     [`${"#".repeat(b.level)} ${mdInline(b.heading)}`, ...(b.nodes.length ? [b.nodes.map((n) => mdNode(n)).join("\n")] : [])].join("\n\n")
   );
   return parts.join("\n\n") + (parts.length ? "\n" : "");
@@ -371,13 +382,7 @@ export function draftMarkdown(stories: Story[], issues: Map<string, string>): st
 
 function htmlInline(segs: Seg[]): string {
   return segs
-    .map((s) =>
-      typeof s === "string"
-        ? h(s)
-        : "issue" in s
-          ? ` <span class="issue">← issue</span>`
-          : `<a href="${h(s.url)}">${h(s.text)}</a>`
-    )
+    .map((s) => (typeof s === "string" ? h(s) : `<a href="${h(s.url)}">${h(s.text)}</a>`))
     .join("");
 }
 
@@ -387,8 +392,8 @@ function htmlNode(n: Node): string {
 }
 
 /** The same draft rendered as it would read in an issue. */
-export function draftHtml(stories: Story[], issues: Map<string, string>): string {
-  return blocks(stories, issues)
+export function draftHtml(stories: Story[]): string {
+  return blocks(stories)
     .map((b) => `<h${b.level}>${htmlInline(b.heading)}</h${b.level}>${b.nodes.length ? `\n<ul>\n${b.nodes.map(htmlNode).join("\n")}\n</ul>` : ""}`)
     .join("\n");
 }
@@ -401,9 +406,9 @@ function sinceFrom(request: Request): Date | null {
 }
 
 async function build(env: Env, since: Date): Promise<{ md: string; html: string; count: number }> {
-  const stories = await listStories(env.DB, { from: since.toISOString() });
-  const issues = await newsletterAppearances(env.DB, storyKeys(stories));
-  return { md: draftMarkdown(stories, issues), html: draftHtml(stories, issues), count: stories.length };
+  const listed = await listStories(env.DB, { from: since.toISOString() });
+  const stories = notInIssues(listed, await newsletterAppearances(env.DB, storyKeys(listed)));
+  return { md: draftMarkdown(stories), html: draftHtml(stories), count: stories.length };
 }
 
 const COPY_JS = `(function(){var b=document.getElementById("copy"),p=document.getElementById("draft");if(!b||!p)return;b.addEventListener("click",function(){navigator.clipboard.writeText(p.textContent||"").then(function(){b.textContent="Copied";setTimeout(function(){b.textContent="Copy"},1500)})})})();`;

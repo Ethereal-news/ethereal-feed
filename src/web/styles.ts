@@ -108,7 +108,6 @@ td.muted,.muted{color:var(--muted)}
 .draft .preview li li{margin:.2rem 0 0;font-size:.9375rem}
 .draft .preview a{text-decoration:underline;text-decoration-color:var(--underline);text-underline-offset:.15em}
 .draft .preview a:hover{text-decoration-color:currentColor}
-.draft .issue{color:var(--muted);font-size:.875rem;white-space:nowrap}
 
 /* footer */
 footer{margin-top:3rem;font-size:.875rem}
