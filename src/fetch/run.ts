@@ -1,5 +1,6 @@
 import type { Env } from "../index";
 import { SOURCES, type Source } from "../config/sources";
+import { TITLE_FIXES } from "../config/titles";
 import { checkLatestIssues, linkForm } from "./newsletter";
 import { clusterNew } from "./cluster";
 
@@ -190,6 +191,10 @@ export async function enforceFilters(env: Env): Promise<number> {
 }
 
 async function fetchSource(source: Source, env: Env): Promise<RawItem[]> {
+  return (await fetchRaw(source, env)).map((i) => (TITLE_FIXES[i.key] ? { ...i, title: TITLE_FIXES[i.key] } : i));
+}
+
+async function fetchRaw(source: Source, env: Env): Promise<RawItem[]> {
   switch (source.type) {
     case "rss":       return (await import("./rss")).fetchRss(source);
     case "scraped":   return (await import("./scraped")).fetchScraped(source);
