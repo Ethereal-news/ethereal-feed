@@ -142,18 +142,36 @@ export function renderStory(story: Story, now: Date, issues?: IssueMap): string 
   return renderItem(story.primary, now, storyIssue(story, issues), lines);
 }
 
-/** Stories in order, with a running date header each time the primary's UTC day changes. */
-export function renderRiver(stories: Story[], now: Date, issues?: IssueMap): string {
+/** A pre-rendered entry placed among the stories by its timestamp (e.g. the latest issue). */
+export interface InlineEntry {
+  published_at: string;
+  html: string;
+}
+
+/**
+ * Stories in order, with a running date header each time the primary's UTC day changes.
+ * An inline entry goes before the first older story, under its own day's header; it is
+ * dropped if it is older than everything shown, so it never trails the page.
+ */
+export function renderRiver(stories: Story[], now: Date, issues?: IssueMap, inline?: InlineEntry): string {
   if (stories.length === 0) return `<p class="empty">Nothing here yet.</p>`;
+  const rows: InlineEntry[] = stories.map((s) => ({
+    published_at: s.primary.published_at,
+    html: renderStory(s, now, issues),
+  }));
+  if (inline) {
+    const at = rows.findIndex((r) => r.published_at < inline.published_at);
+    if (at >= 0) rows.splice(at, 0, inline);
+  }
   let out = "";
   let current = "";
-  for (const story of stories) {
-    const key = dayKey(story.primary.published_at);
+  for (const row of rows) {
+    const key = dayKey(row.published_at);
     if (key !== current) {
       current = key;
       out += `<h2 class="day"><a href="/day/${h(key)}">${h(dayLabel(key, now))}</a></h2>\n`;
     }
-    out += renderStory(story, now, issues) + "\n";
+    out += row.html + "\n";
   }
   return out;
 }

@@ -2,6 +2,7 @@ import type { Env } from "../../index";
 import { listStories, newsletterAppearances } from "../../db/items";
 import { escapeHtml as h } from "../escape";
 import { describe, htmlResponse, notFound } from "../layout";
+import { latestIssue, renderIssueEntry } from "../newsletter";
 import { longDate, renderRiver, storyKeys } from "../render";
 import { parseDay, shift } from "./day";
 
@@ -35,6 +36,10 @@ export async function weekPage(env: Env, dateStr: string): Promise<Response> {
   const prev = shift(start, -7);
   const stories = await listStories(env.DB, { from: start.toISOString(), to: `${next}T00:00:00.000Z` });
   const issues = await newsletterAppearances(env.DB, storyKeys(stories));
+  // The newsletter week matches this page's week, so its issue belongs in it.
+  const issue = await latestIssue(env.DB);
+  const inWeek = issue && issue.published_at >= start.toISOString() && issue.published_at < `${next}T00:00:00.000Z`;
+  const inline = inWeek ? { published_at: issue.published_at, html: renderIssueEntry(issue, now) } : undefined;
 
   const showNext = next <= now.toISOString().slice(0, 10);
   const pager = `<nav class="pager" aria-label="Weeks">
@@ -47,6 +52,6 @@ ${showNext ? `<a href="/week/${next}" rel="next">Week of ${h(longDate(next))} �
     title: `Ethereum news for ${label}`,
     description: describe(`Ethereum news for the ${label}`),
     path: `/week/${saturday}`,
-    body: `<h1>Week of ${h(longDate(saturday))} <span>Sat–Fri, UTC</span></h1>\n${renderRiver(stories, now, issues)}\n${pager}`,
+    body: `<h1>Week of ${h(longDate(saturday))} <span>Sat–Fri, UTC</span></h1>\n${renderRiver(stories, now, issues, inline)}\n${pager}`,
   });
 }
