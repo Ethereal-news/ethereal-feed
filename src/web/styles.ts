@@ -1,11 +1,12 @@
 /**
  * Site CSS, inlined into every page. Mirrors ethereal.news: 640px column with
- * 0.75rem padding, #fafafa / #171717 swapped between light and dark, muted
- * nav at 60% that goes full on hover. Theme follows prefers-color-scheme (the
- * "system" preference) unless <html data-theme="light|dark"> overrides it.
+ * 0.75rem padding; white page with 85% black text, or neutral-900 (#171717)
+ * with 85% white text in dark; muted text and nav at 60% that goes full on
+ * hover; borders at 15% (20% dark) and rules at 10%. Theme follows
+ * prefers-color-scheme (the "system" preference) unless <html data-theme="light|dark"> overrides it.
  */
-const LIGHT = `--bg:#fafafa;--fg:#171717;--muted:#6b6b6b;--nav:rgba(0,0,0,.6);--pipe:rgba(0,0,0,.3);--underline:rgba(0,0,0,.5);--full:#000;--rule:#e4e4e4;--edge:rgba(0,0,0,.15);--hover:rgba(0,0,0,.05);--err:#b42318;color-scheme:light`;
-const DARK = `--bg:#171717;--fg:#fafafa;--muted:#9c9c9c;--nav:rgba(255,255,255,.6);--pipe:rgba(255,255,255,.3);--underline:rgba(255,255,255,.5);--full:#fff;--rule:#2c2c2c;--edge:rgba(255,255,255,.2);--hover:rgba(255,255,255,.05);--err:#f97066;color-scheme:dark`;
+const LIGHT = `--bg:#fff;--fg:rgba(0,0,0,.85);--muted:rgba(0,0,0,.6);--nav:rgba(0,0,0,.6);--pipe:rgba(0,0,0,.3);--underline:rgba(0,0,0,.5);--full:#000;--rule:rgba(0,0,0,.1);--edge:rgba(0,0,0,.15);--hover:rgba(0,0,0,.05);--err:#b42318;color-scheme:light`;
+const DARK = `--bg:#171717;--fg:rgba(255,255,255,.85);--muted:rgba(255,255,255,.6);--nav:rgba(255,255,255,.6);--pipe:rgba(255,255,255,.3);--underline:rgba(255,255,255,.5);--full:#fff;--rule:rgba(255,255,255,.1);--edge:rgba(255,255,255,.2);--hover:rgba(255,255,255,.05);--err:#f97066;color-scheme:dark`;
 
 export const CSS = `
 :root{${LIGHT}}
@@ -48,7 +49,7 @@ nav.cats a:hover,nav.cats a[aria-current]{color:var(--fg)}
 nav.cats a[aria-current]{font-weight:600}
 
 /* river */
-main h1{font-size:1.0625rem;font-weight:600;margin:0 0 1rem}
+main h1{font-size:1.0625rem;font-weight:600;color:var(--full);margin:0 0 1rem}
 main h1 span{color:var(--muted);font-weight:400}
 h2.day{font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:1.75rem 0 .75rem;display:flex;align-items:center;gap:.75rem}
 h2.day::after{content:"";flex:1;height:1px;background:var(--rule)}
@@ -56,8 +57,8 @@ h2.day:first-child{margin-top:.25rem}
 .item{margin:0 0 1.1rem}
 .item .s{font-size:.75rem;color:var(--muted);letter-spacing:.02em;line-height:1.5}
 .item .s a:hover{color:var(--fg)}
-.item .t{font-weight:500;line-height:1.35}
-.item .d{font-size:1rem;color:var(--fg);opacity:.8;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .t{font-weight:500;color:var(--full);line-height:1.35}
+.item .d{font-size:1rem;color:var(--muted);line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .item .m{font-size:.75rem;color:var(--muted);letter-spacing:.02em;line-height:1.6;margin-top:.1rem}
 .item .more{font-size:.75rem;color:var(--muted);line-height:1.6}
 .item .more .lbl{letter-spacing:.02em}
