@@ -95,6 +95,7 @@ td.muted,.muted{color:var(--muted)}
 .pending .stories{margin:0;padding-left:1.25rem;font-size:.8125rem;line-height:1.5}
 .pending .stories ul{margin:.15rem 0 .6rem;padding-left:1.25rem}
 .pending .stories li{margin:0 0 .25rem}
+.pending .stories li.member{margin-left:1.25rem}
 
 /* newsletter draft */
 .draft h1 span{color:var(--muted);font-weight:400}

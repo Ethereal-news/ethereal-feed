@@ -235,6 +235,38 @@ export async function hidePending(db: D1Database, id: number): Promise<boolean> 
   return (res.meta.changes ?? 0) > 0;
 }
 
+/**
+ * Hide a published item; returns whether it was published. A story's primary
+ * hands that role to the earliest remaining "more" item (else commentary), so
+ * the rest of the story stays on the river.
+ */
+export async function hidePublished(db: D1Database, id: number, now: string): Promise<boolean> {
+  const item = await db
+    .prepare("SELECT status, story_id, story_role FROM items WHERE id = ?")
+    .bind(id)
+    .first<{ status: string; story_id: number | null; story_role: string }>();
+  if (!item || item.status !== "published") return false;
+  const stmts = [db.prepare("UPDATE items SET status = 'hidden' WHERE id = ?").bind(id)];
+  if (item.story_role === "primary" && item.story_id !== null) {
+    const next = await db
+      .prepare(
+        `SELECT id FROM items WHERE story_id = ? AND id != ? AND status = 'published'
+         ORDER BY story_role = 'commentary', published_at ASC, id ASC LIMIT 1`
+      )
+      .bind(item.story_id, id)
+      .first<{ id: number }>();
+    if (next) {
+      stmts.push(
+        db.prepare("UPDATE items SET story_role = 'more' WHERE id = ?").bind(id),
+        db.prepare("UPDATE items SET story_role = 'primary' WHERE id = ?").bind(next.id),
+        db.prepare("UPDATE stories SET primary_item_id = ?, updated_at = ? WHERE id = ?").bind(next.id, now, item.story_id)
+      );
+    }
+  }
+  await db.batch(stmts);
+  return true;
+}
+
 export interface SourceCounts {
   total: number;
   last30: number;

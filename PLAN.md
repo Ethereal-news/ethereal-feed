@@ -41,6 +41,7 @@ ethereal-feed/
         sources.ts        # /sources
         draft.ts          # /draft?since=
         pending.ts        # /pending
+        review.ts         # /pending/review
       feeds.ts            # feed.xml, feed.json, /c/:slug/feed.xml
       styles.ts           # CSS string, matches ethereal.news palette
 ```
@@ -191,6 +192,7 @@ Rules encoded in the fetcher, not per-source:
 | `/day/:yyyy-mm-dd` | everything published that day, permanent |
 | `/sources` | table: source, category, published item count (all-time and 30d), last ok fetch, last error |
 | `/pending` | **Access** — allowlist items awaiting an author approval (approve = edit `sources.ts`) |
+| `/pending/review` | **Access** — add an item by hand, or hide a published one |
 | `/draft?since=YYYY-MM-DD` | newsletter markdown: `### Section` headers in section order, `- [Title](url) — desc` per item |
 | `/feed.xml`, `/feed.json` | full river (last 50) |
 | `/c/:slug/feed.xml` | per-category |

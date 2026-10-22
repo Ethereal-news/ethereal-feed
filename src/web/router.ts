@@ -5,6 +5,7 @@ import { notFound } from "./layout";
 import { dayPage } from "./pages/day";
 import { draftMarkdownResponse, draftPage } from "./pages/draft";
 import { attachToStory, hidePendingItem, pendingPage, splitFromStory } from "./pages/pending";
+import { hideItem, reviewPage } from "./pages/review";
 import { riverPage } from "./pages/river";
 import { sourcesPage } from "./pages/sources";
 import { weekPage, weekRedirect } from "./pages/week";
@@ -13,11 +14,12 @@ import { weekPage, weekRedirect } from "./pages/week";
 export async function handleWeb(request: Request, env: Env): Promise<Response> {
   const path = new URL(request.url).pathname;
 
-  // POSTs are the review queue's forms: hide, attach a URL to a story, split one out.
+  // POSTs are the review forms: hide, attach a URL to a story, split one out.
   if (request.method === "POST") {
     if (path === "/pending/hide") return hidePendingItem(request, env);
     if (path === "/pending/attach") return attachToStory(request, env);
     if (path === "/pending/split") return splitFromStory(request, env);
+    if (path === "/pending/review/hide") return hideItem(request, env);
     return new Response("Method not allowed", { status: 405, headers: { Allow: "GET, HEAD" } });
   }
   if (request.method !== "GET" && request.method !== "HEAD") {
@@ -29,6 +31,7 @@ export async function handleWeb(request: Request, env: Env): Promise<Response> {
   if (path === "/feed.json") return jsonFeed(env);
   if (path === "/sources") return sourcesPage(env);
   if (path === "/pending") return pendingPage(env);
+  if (path === "/pending/review") return reviewPage(env);
   if (path === "/draft") return draftPage(request, env);
   if (path === "/draft.md") return draftMarkdownResponse(request, env);
 
