@@ -356,6 +356,7 @@ export const SOURCES: Source[] = [
   { id: "ssv", name: "SSV Node", type: "release", owner: "ssvlabs", repo: "ssv", category: "staking", trust: "auto", kind: "distributed validator" },
   { id: "charon", org: "Obol", name: "Charon", type: "release", owner: "ObolNetwork", repo: "charon", category: "staking", trust: "auto", kind: "distributed validator" },
   { id: "pluto", org: "Nethermind", name: "Pluto", type: "release", owner: "NethermindEth", repo: "pluto", category: "staking", trust: "auto", kind: "distributed validator" },
+  { id: "eth-docker", org: "EthStaker", name: "Eth Docker", type: "release", owner: "ethstaker", repo: "eth-docker", category: "staking", trust: "auto", kind: "developer tool", kindLabel: "node setup tool" },
 
   // ------------------------------------------------------- dev tool releases
   { id: "halmos", name: "Halmos", type: "release", owner: "a16z", repo: "halmos", category: "developers", trust: "auto", kind: "security" },
