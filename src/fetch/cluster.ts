@@ -23,8 +23,10 @@ import { linkForm } from "./newsletter";
  *      window are ignored as too generic.
  *   3. Same non-null config `group`, within GROUP_WINDOW_HOURS, and any
  *      non-release item in the pair reads like a release announcement (a
- *      release word or a version in its title or description). A blog post
- *      that merely lands in the same week as a release stays on its own.
+ *      release word or a version in its title or description) or is a bug
+ *      post: a blog post with "bug" in its title, which Solidity publishes
+ *      alongside the release that fixes it. A blog post that merely lands in
+ *      the same week as a release stays on its own.
  *   4. Forkcast EIP status changes ("EIP-7645 (...) is now Declined for
  *      Hegota") join the nearest AllCoreDevs Execution, Consensus or Testing
  *      call recap published up to ACD_WINDOW_HOURS earlier: that is the call
@@ -123,6 +125,17 @@ export function announcesRelease(row: Pick<Row, "source_type" | "title" | "descr
   return row.source_type === "release" || ANNOUNCEMENT_RE.test(`${row.title} ${row.description}`);
 }
 
+/** A blog post with "bug" in its title: a bug disclosure, never a story's primary while a release post is there. */
+export function isBugPost(row: Pick<Row, "source_id" | "title">): boolean {
+  return SOURCE_BY_ID[row.source_id]?.kind === "blog" && /\bbug\b/i.test(row.title);
+}
+
+/** Rule 3: whether two items share a story by config `group` alone. */
+export function groupPair(a: Row, b: Row): boolean {
+  const eligible = (r: Row) => announcesRelease(r) || isBugPost(r);
+  return sameGroup(a, b) && eligible(a) && eligible(b) && gapMs(a, b) <= GROUP_WINDOW_HOURS * 3_600_000;
+}
+
 /** Major.minor of a release version ("26.9.1" -> "26.9", "1.7.0-beta.2" -> "1.7"); the whole string when it has no dot. */
 export function releaseLine(version: string): string {
   return version.match(/^\d+\.\d+/)?.[0] ?? version;
@@ -137,8 +150,7 @@ export function distinctReleases(a: Row, b: Row): boolean {
 
 /** Lower is better: blog post, release, forum topic, AllCoreDevs call recap, anything else. */
 export function rank(row: Row): number {
-  const kind = SOURCE_BY_ID[row.source_id]?.kind;
-  if (kind === "blog" && !/\bbug\b/i.test(row.title)) return 0;
+  if (SOURCE_BY_ID[row.source_id]?.kind === "blog" && !isBugPost(row)) return 0;
   if (row.source_type === "release") return 1;
   if (row.source_type === "discourse") return 2;
   if (isAcdCall(row)) return 3;
@@ -262,12 +274,7 @@ export async function clusterNew(env: Env, now = new Date().toISOString()): Prom
     return out;
   };
 
-  const rule3 = (item: Row): Row[] =>
-    groupOf(item) === undefined || !announcesRelease(item)
-      ? []
-      : pool.filter(
-          (row) => sameGroup(item, row) && announcesRelease(row) && gapMs(item, row) <= GROUP_WINDOW_HOURS * 3_600_000
-        );
+  const rule3 = (item: Row): Row[] => (groupOf(item) === undefined ? [] : pool.filter((row) => groupPair(item, row)));
 
   const rule4 = (item: Row): Row[] => {
     if (!isStatusChange(item)) return [];
