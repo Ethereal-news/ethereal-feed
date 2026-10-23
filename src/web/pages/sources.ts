@@ -11,6 +11,8 @@ const KIND_ORDER: Kind[] = [
   "blog",
   "execution layer client",
   "consensus layer client",
+  "validator client",
+  "distributed validator",
   "language",
   "framework",
   "client library",

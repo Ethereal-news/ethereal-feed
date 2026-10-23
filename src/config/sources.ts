@@ -21,6 +21,8 @@ export type Kind =
   | "blog"
   | "execution layer client"
   | "consensus layer client"
+  | "validator client"
+  | "distributed validator"
   | "language"
   | "framework"
   | "client library"
@@ -347,6 +349,13 @@ export const SOURCES: Source[] = [
     category: "layer-1", trust: "auto",
     kind: "consensus layer client",
   },
+  // Multi-node validator clients and DVT: validators that spread trust across several clients.
+  { id: "vouch", org: "Attestant", name: "Vouch", type: "release", owner: "attestantio", repo: "vouch", category: "staking", trust: "auto", kind: "validator client", kindLabel: "multi-node validator client" },
+  { id: "dirk", org: "Attestant", name: "Dirk", type: "release", owner: "attestantio", repo: "dirk", category: "staking", trust: "auto", kind: "validator client", kindLabel: "distributed remote signer" },
+  { id: "vero", org: "Serenita", name: "Vero", type: "release", owner: "serenita-org", repo: "vero", category: "staking", trust: "auto", kind: "validator client", kindLabel: "multi-node validator client" },
+  { id: "ssv", name: "SSV Node", type: "release", owner: "ssvlabs", repo: "ssv", category: "staking", trust: "auto", kind: "distributed validator" },
+  { id: "charon", org: "Obol", name: "Charon", type: "release", owner: "ObolNetwork", repo: "charon", category: "staking", trust: "auto", kind: "distributed validator" },
+  { id: "pluto", org: "Nethermind", name: "Pluto", type: "release", owner: "NethermindEth", repo: "pluto", category: "staking", trust: "auto", kind: "distributed validator" },
 
   // ------------------------------------------------------- dev tool releases
   { id: "halmos", name: "Halmos", type: "release", owner: "a16z", repo: "halmos", category: "developers", trust: "auto", kind: "security" },
