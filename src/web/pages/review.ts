@@ -3,7 +3,8 @@ import { findByUrl, hidePublished, listStories, storyItems, type ItemRow } from 
 import { escapeHtml as h } from "../escape";
 import { htmlResponse } from "../layout";
 import { age, sourceLabel } from "../render";
-import { attachForm, back, urlForms } from "./pending";
+import { attachForm, back } from "./pending";
+import { urlForms } from "../../fetch/newsletter";
 
 /**
  * "/pending/review": add an item by hand, or hide a published one (by URL, or

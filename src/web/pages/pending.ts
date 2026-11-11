@@ -7,7 +7,7 @@ import {
 } from "../../db/items";
 import { decodeEntities, truncate } from "../../fetch/html";
 import { fetchText } from "../../fetch/http";
-import { linkForm, matchForm } from "../../fetch/newsletter";
+import { linkForm, urlForms } from "../../fetch/newsletter";
 import { escapeHtml as h } from "../escape";
 import { htmlResponse } from "../layout";
 import { age, sourceLabel } from "../render";
@@ -169,13 +169,6 @@ async function fetchTitle(url: string): Promise<string> {
   } catch {
     return url;
   }
-}
-
-/** Spellings a stored URL might have for this link: with and without "www." and a trailing slash. */
-export function urlForms(url: string): string[] {
-  const n = matchForm(url);
-  const www = n.replace(/^(https?:\/\/)/, "$1www.");
-  return [n, `${n}/`, www, `${www}/`];
 }
 
 /**

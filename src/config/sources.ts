@@ -261,7 +261,7 @@ export const SOURCES: Source[] = [
   },
   {
     id: "base-engineering-blog", name: "Base Engineering blog", type: "rss",
-    url: "https://blog.base.dev/rss",
+    url: "https://www.base.org/blog/rss.xml",
     category: "layer-2", trust: "auto",
     kind: "blog",
   },

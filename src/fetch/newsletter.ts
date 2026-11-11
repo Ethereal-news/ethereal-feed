@@ -148,6 +148,13 @@ export function matchForm(url: string): string {
     .replace(/([^:])\/{2,}/g, "$1/");
 }
 
+/** Spellings a stored URL might have for this link: with and without "www." and a trailing slash. */
+export function urlForms(url: string): string[] {
+  const n = matchForm(url);
+  const www = n.replace(/^(https?:\/\/)/, "$1www.");
+  return [n, `${n}/`, www, `${www}/`];
+}
+
 export function buildItemIndex(rows: Array<{ key: string; url: string }>): ItemIndex {
   const byUrl = new Map<string, string>();
   const byKey = new Set<string>();

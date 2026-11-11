@@ -1,7 +1,7 @@
 import type { Env } from "../index";
 import { SOURCES, type Source } from "../config/sources";
 import { TITLE_FIXES } from "../config/titles";
-import { checkLatestIssues, linkForm } from "./newsletter";
+import { checkLatestIssues, linkForm, matchForm, urlForms } from "./newsletter";
 import { clusterNew } from "./cluster";
 
 /** What every fetcher returns; run.ts turns these into rows. */
@@ -215,30 +215,36 @@ function statusFor(source: Source, item: RawItem): "published" | "pending" | "hi
 
 /**
  * A feed can reissue a post under a new guid (Paragraph did for Base's
- * Cobalt post), which would insert it twice. A new key whose URL matches
- * exactly one existing row of the same source, and that row's key is gone
- * from this response, is the same post: move the row to the new key so the
- * upsert updates it. Returns the keys taken over.
+ * Cobalt post), or under a respelled URL (Base's feed moved from base.org to
+ * www.base.org), which would insert it twice. A new key whose URL matches
+ * exactly one existing row of the same source, compared without "www.", a
+ * trailing slash or doubled slashes, and that row's key is gone from this
+ * response, is the same post: move the row to the new key so the upsert
+ * updates it. Returns the keys taken over.
  */
 async function rekeyMoved(env: Env, source: Source, items: RawItem[], known: Set<string>): Promise<string[]> {
-  const urlCount = new Map<string, number>();
-  for (const i of items) urlCount.set(i.url, (urlCount.get(i.url) ?? 0) + 1);
-  const fresh = items.filter((i) => !known.has(i.key) && urlCount.get(i.url) === 1);
+  const formCount = new Map<string, number>();
+  for (const i of items) formCount.set(matchForm(i.url), (formCount.get(matchForm(i.url)) ?? 0) + 1);
+  const fresh = items.filter((i) => !known.has(i.key) && formCount.get(matchForm(i.url)) === 1);
   if (fresh.length === 0) return [];
 
-  const byUrl = new Map<string, { id: number; key: string }[]>();
-  for (let i = 0; i < fresh.length; i += 90) {
-    const chunk = fresh.slice(i, i + 90).map((f) => f.url);
+  const byForm = new Map<string, { id: number; key: string }[]>();
+  const spellings = [...new Set(fresh.flatMap((f) => urlForms(f.url)))];
+  for (let i = 0; i < spellings.length; i += 90) {
+    const chunk = spellings.slice(i, i + 90);
     const rows = await env.DB.prepare(
       `SELECT id, key, url FROM items WHERE source_id = ? AND url IN (${chunk.map(() => "?").join(",")})`
     ).bind(source.id, ...chunk).all<{ id: number; key: string; url: string }>();
-    for (const r of rows.results) byUrl.set(r.url, [...(byUrl.get(r.url) ?? []), r]);
+    for (const r of rows.results) {
+      const f = matchForm(r.url);
+      byForm.set(f, [...(byForm.get(f) ?? []), r]);
+    }
   }
   const inResponse = new Set(items.map((i) => i.key));
 
   const moves: { id: number; from: string; to: string }[] = [];
   for (const i of fresh) {
-    const matches = byUrl.get(i.url) ?? [];
+    const matches = byForm.get(matchForm(i.url)) ?? [];
     if (matches.length === 1 && !inResponse.has(matches[0].key)) {
       moves.push({ id: matches[0].id, from: matches[0].key, to: i.key });
     }
