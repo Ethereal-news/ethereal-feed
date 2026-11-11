@@ -1,7 +1,7 @@
 # ethereal-feed
 
 Techmeme-style river of primary Ethereum sources at feed.ethereal.news.
-One Cloudflare Worker, one D1 database, one cron. See `PLAN.md`.
+One Cloudflare Worker, one D1 database, one cron.
 
 ## Setup
 
